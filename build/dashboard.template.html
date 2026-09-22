@@ -1,0 +1,584 @@
+<title>Slav&amp;So לוח בקרה</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bellefair&family=IBM+Plex+Sans+Hebrew:wght@300;400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F3F6F6; --surface:#FFFFFF; --surface-2:#F8FAFA;
+  --ink:#111414; --ink-2:#4A5353; --ink-3:#7D8888; --line:#E0E6E6; --line-2:#CBD4D4;
+  --accent:#9BDAD9; --accent-ink:#1E5C5B; --accent-soft:#E2F4F3;
+  --band:#0F1212; --band-ink:#F4F7F7; --band-ink-2:#9FAAAA; --band-line:#262C2C;
+  --s-meta:#9BDAD9; --s-org:#2F3636; --s-partner:#AAB4B4;
+  --good:#2D7A57; --good-bg:#E4F2EB; --warn:#9A6414; --warn-bg:#FBF0DD; --bad:#A8322A; --bad-bg:#F9E6E4; --mute-bg:#EDF1F1;
+  --radius:10px;
+  --f-display:"Bellefair","Frank Ruhl Libre",Georgia,serif;
+  --f-ui:"IBM Plex Sans Hebrew","Assistant","Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0B0D0D; --surface:#151919; --surface-2:#111515;
+    --ink:#EEF3F3; --ink-2:#B2BDBD; --ink-3:#7A8686; --line:#232A2A; --line-2:#2F3838;
+    --accent:#9BDAD9; --accent-ink:#9BDAD9; --accent-soft:#18302F;
+    --band:#050606; --band-line:#1E2424;
+    --s-meta:#9BDAD9; --s-org:#DCE3E3; --s-partner:#5F6B6B;
+    --good:#6CC79A; --good-bg:#132A20; --warn:#E3AE5B; --warn-bg:#2C2212; --bad:#EE877E; --bad-bg:#301716; --mute-bg:#1C2222;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0B0D0D; --surface:#151919; --surface-2:#111515;
+  --ink:#EEF3F3; --ink-2:#B2BDBD; --ink-3:#7A8686; --line:#232A2A; --line-2:#2F3838;
+  --accent:#9BDAD9; --accent-ink:#9BDAD9; --accent-soft:#18302F;
+  --band:#050606; --band-line:#1E2424;
+  --s-meta:#9BDAD9; --s-org:#DCE3E3; --s-partner:#5F6B6B;
+  --good:#6CC79A; --good-bg:#132A20; --warn:#E3AE5B; --warn-bg:#2C2212; --bad:#EE877E; --bad-bg:#301716; --mute-bg:#1C2222;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.app{direction:rtl}
+.num,td.n,.kpi b,.fn b{font-variant-numeric:tabular-nums}
+bdi{unicode-bidi:isolate}
+
+/* פס עליון */
+.band{background:var(--band);color:var(--band-ink);padding-inline:16px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;border-bottom:1px solid var(--band-line)}
+.band-in{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:10px 24px;padding-block:12px}
+.brand{font-family:var(--f-display);font-size:26px;letter-spacing:.01em;line-height:1;direction:ltr}
+.brand i{font-style:normal;color:var(--accent)}
+.brand-sub{color:var(--band-ink-2);font-size:12px}
+.periods{display:flex;gap:4px;flex-wrap:wrap;margin-inline-start:auto}
+.periods button{font:inherit;font-size:13px;color:var(--band-ink-2);background:transparent;border:1px solid var(--band-line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.periods button:hover{color:var(--band-ink);border-color:var(--band-ink-2)}
+.periods button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#0F1212;font-weight:600}
+.periods button:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.nav{max-width:1240px;margin:0 auto;display:flex;gap:18px;overflow-x:auto;padding-block:0 10px;scrollbar-width:none}
+.nav a{color:var(--band-ink-2);text-decoration:none;font-size:13px;white-space:nowrap}
+.nav a:hover{color:var(--accent)}
+
+main{max-width:1240px;margin:0 auto;padding-inline:16px;padding-block:20px 64px;display:grid;gap:28px}
+.fresh{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--ink-3);font-size:12.5px}
+.fresh b{color:var(--ink-2);font-weight:500}
+.alert{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:10px 14px;font-size:13px}
+
+/* משפך */
+.funnel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);display:grid;grid-template-columns:repeat(6,1fr);overflow:hidden}
+.fn{padding:16px 16px 14px;border-inline-start:1px solid var(--line);position:relative;display:grid;gap:2px;align-content:start}
+.fn:first-child{border-inline-start:0}
+.fn span{font-size:12px;color:var(--ink-3);letter-spacing:.02em}
+.fn b{font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1.1;color:var(--ink)}
+.fn em{font-style:normal;font-size:12px;color:var(--ink-2)}
+.fn em strong{color:var(--accent-ink);font-weight:600}
+.fn.money b{color:var(--ink)}
+.fn.hi{background:var(--accent-soft)}
+
+main,section{grid-template-columns:minmax(0,1fr)}
+main > *,section > *,.panel{min-width:0}
+section{display:grid;gap:14px;scroll-margin-top:110px}
+.sh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line-2);padding-bottom:8px}
+.sh .ix{font-family:var(--f-display);font-size:15px;color:var(--ink-3);min-width:1.2em}
+.sh h2{font-family:var(--f-display);font-weight:400;font-size:26px;margin:0;line-height:1.1;text-wrap:balance}
+.sh p{margin:0;color:var(--ink-3);font-size:12.5px;margin-inline-start:auto;max-width:60ch}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;display:grid;gap:4px}
+.kpi span{font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;gap:6px}
+.kpi b{font-family:var(--f-display);font-weight:400;font-size:30px;line-height:1.1}
+.kpi small{color:var(--ink-3);font-size:12px}
+.sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.panel h3{margin:0 0 10px;font-size:14px;font-weight:600}
+.panel .hint{color:var(--ink-3);font-size:12px;margin:8px 0 0}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+.grid2 > *{min-width:0}
+
+/* טבלאות */
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-weight:500;color:var(--ink-3);font-size:12px;text-align:start;padding:8px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap;vertical-align:bottom}
+td{padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n,th.n{text-align:left;direction:ltr}
+tr.sub td{color:var(--ink-3);font-size:12px;padding-block:5px}
+tr.sub td:first-child{padding-inline-start:26px}
+tr.tot td{font-weight:600;border-top:1px solid var(--line-2);border-bottom:0}
+tr.grp td{background:var(--surface-2);font-size:12px;color:var(--ink-2);font-weight:600;padding-block:6px}
+td .nm{display:flex;align-items:center;gap:8px}
+.dim{color:var(--ink-3)}
+
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-good{background:var(--good-bg);color:var(--good)}
+.p-warn{background:var(--warn-bg);color:var(--warn)}
+.p-bad{background:var(--bad-bg);color:var(--bad)}
+.p-mute{background:var(--mute-bg);color:var(--ink-2)}
+
+/* גרפים */
+.chart{position:relative}
+.bars{display:flex;align-items:flex-end;gap:14px;height:190px;padding-inline:4px;border-bottom:1px solid var(--line-2);position:relative}
+.bars .gl{position:absolute;inset-inline:0;border-top:1px dashed var(--line);font-size:11px;color:var(--ink-3)}
+.bars .gl span{position:absolute;inset-inline-end:0;top:-9px;background:var(--surface);padding-inline-start:4px}
+.col{flex:1;display:flex;flex-direction:column-reverse;gap:2px;height:100%;justify-content:flex-start;position:relative;z-index:1;max-width:90px;margin-inline:auto}
+.col .seg{width:100%;border-radius:0}
+.col .seg:last-child{border-radius:4px 4px 0 0}
+.col:hover .seg{filter:brightness(.92)}
+.col .top{position:absolute;inset-inline:0;text-align:center;font-size:12px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.xl{display:flex;gap:14px;padding-inline:4px;margin-top:6px}
+.xl span{flex:1;text-align:center;font-size:12px;color:var(--ink-3);max-width:90px;margin-inline:auto}
+.gcol{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:3px;height:100%;position:relative;z-index:1;max-width:120px;margin-inline:auto}
+.gcol .b{width:34%;border-radius:4px 4px 0 0;min-height:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-2);margin-top:10px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12px;padding:7px 10px;border-radius:6px;z-index:20;max-width:260px;line-height:1.45;direction:rtl}
+.tip[hidden]{display:none}
+
+.hbar{display:grid;gap:8px}
+.hrow{display:grid;grid-template-columns:minmax(90px,150px) 1fr auto;gap:10px;align-items:center;font-size:13px}
+.hrow .tr{height:10px;background:var(--mute-bg);border-radius:4px;overflow:hidden}
+.hrow .tr i{display:block;height:100%;background:var(--accent);border-radius:0 4px 4px 0}
+.hrow b{font-weight:500;font-variant-numeric:tabular-nums;direction:ltr}
+
+.pl{display:grid;gap:0}
+.pl div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.pl div b{font-weight:500;font-variant-numeric:tabular-nums}
+.pl div.t{border-bottom:0;border-top:2px solid var(--ink);font-weight:600;font-size:15px;padding-top:10px}
+.pl div.t b{font-weight:600}
+.neg{color:var(--bad)}
+.note{font-size:12.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;line-height:1.6}
+.note b{font-weight:600}
+footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid var(--line-2);padding-top:14px}
+
+@media (max-width:980px){
+  .funnel{grid-template-columns:repeat(3,1fr)}
+  .fn:nth-child(4){border-inline-start:0}
+  .fn:nth-child(n+4){border-top:1px solid var(--line)}
+  .grid2{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .funnel{grid-template-columns:repeat(2,1fr)}
+  .fn{border-inline-start:0;border-top:1px solid var(--line)}
+  .fn:nth-child(even){border-inline-start:1px solid var(--line)}
+  .fn:nth-child(-n+2){border-top:0}
+  .fn b{font-size:28px}
+  .sh p{margin-inline-start:0}
+  .bars,.xl{gap:8px}
+}
+@media (prefers-reduced-motion:no-preference){ .col .seg,.gcol .b,.hrow .tr i{transition:height .3s ease,width .3s ease} }
+</style>
+
+<div class="app" lang="he">
+  <header class="band">
+    <div class="band-in">
+      <div>
+        <div class="brand">Slav<i>&amp;</i>So</div>
+        <div class="brand-sub">לוח בקרה: קמפיינים, וובינר ומכירות</div>
+      </div>
+      <div class="periods" id="periods" role="group" aria-label="תקופה"></div>
+    </div>
+    <nav class="nav" aria-label="מקטעים">
+      <a href="#leads">לידים</a><a href="#ads">ביצועי מודעות</a><a href="#webinar">וובינר</a><a href="#calls">שיחות</a><a href="#sales">רכישות</a><a href="#costs">הוצאות</a><a href="#profit">רווח</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="fresh" id="fresh"></div>
+    <div id="alerts"></div>
+    <div class="funnel" id="funnel" aria-label="המשפך בתקופה"></div>
+
+    <section id="leads">
+      <div class="sh"><span class="ix">1</span><h2>לידים נכנסים</h2><p>מטא: נרשמות לוובינר עם UTM של מטא. אורגני: פניות מהאתר, גוגל חיפוש והרשמה ישירה לוובינר. שיתופי פעולה: HTZONE, BUYME, בסלון, תוכנית עמית.</p></div>
+      <div class="kpis" id="leadKpis"></div>
+      <div class="grid2">
+        <div class="panel"><h3>לידים לפי חודש ומקור</h3><div class="chart" id="leadChart"></div></div>
+        <div class="panel"><h3>פירוט מקורות</h3><div class="tw"><table id="leadTable"></table></div><p class="hint" id="leadHint"></p></div>
+      </div>
+    </section>
+
+    <section id="ads">
+      <div class="sh"><span class="ix">2</span><h2>ביצועים לפי מודעה ומקור</h2><p>כל שורה עוקבת אחרי אותן אנשים לאורך כל המשפך. שיוך רכישות לפי Last Touch. 1$ = 3 ₪. סף רווחיות: ROAS 1.2.</p></div>
+      <div class="panel"><div class="tw"><table id="adTable"></table></div><p class="hint" id="adHint"></p></div>
+      <div class="panel"><h3>איכות המודעות במטא</h3><div class="tw"><table id="metaTable"></table></div><p class="hint" id="metaHint"></p></div>
+    </section>
+
+    <section id="webinar">
+      <div class="sh"><span class="ix">3</span><h2>משתתפות בוובינר</h2><p>עומק: 35 דקות ומעלה בשידור. חלקי: פחות מ-35 דקות. האחוזים מתוך כל הנרשמות בתקופה.</p></div>
+      <div class="kpis" id="webKpis"></div>
+      <div class="panel"><h3>לפי חודש</h3><div class="tw"><table id="webTable"></table></div></div>
+    </section>
+
+    <section id="calls">
+      <div class="sh"><span class="ix">4</span><h2>שיחות מכירה</h2><p>שיחה = סימון 1 בעמודת "שיחה" בטאבים הגיע 35, הגיע פחות מ 35 ומסר 1.</p></div>
+      <div class="kpis" id="callKpis"></div>
+      <div class="grid2">
+        <div class="panel"><h3>כיסוי שיחות לפי קהל</h3><div class="hbar" id="callCover"></div><p class="hint">כמה מתוך כל קהל קיבלו שיחה.</p></div>
+        <div class="panel"><h3>איך נסגרו הרכישות</h3><div class="hbar" id="closeWay"></div><p class="hint">לפי העמודה "סליקה אוטומטית?" בטאב רכשו.</p></div>
+      </div>
+    </section>
+
+    <section id="sales">
+      <div class="sh"><span class="ix">5</span><h2>רכישות</h2><p>מקור: טאב רכשו. הכנסה = עמודת סכום, כפי שנרשמה בפועל.</p></div>
+      <div class="kpis" id="saleKpis"></div>
+      <div class="grid2">
+        <div class="panel"><h3>הכנסות לפי מקור</h3><div class="hbar" id="saleSrc"></div><p class="hint" id="attrHint"></p></div>
+        <div class="panel"><h3>לפי מוצר</h3><div class="tw"><table id="prodTable"></table></div></div>
+      </div>
+    </section>
+
+    <section id="costs">
+      <div class="sh"><span class="ix">6</span><h2>הוצאות</h2><p>מקור: טאב דוח חודשי (ספר ההוצאות). החודש הנוכחי חלקי.</p></div>
+      <div class="kpis" id="costKpis"></div>
+      <div class="grid2">
+        <div class="panel"><h3>פירוט הוצאות</h3><div class="tw"><table id="costTable"></table></div></div>
+        <div class="panel"><h3>בדיקת התאמה</h3><div id="costCheck" class="note"></div></div>
+      </div>
+    </section>
+
+    <section id="profit">
+      <div class="sh"><span class="ix">7</span><h2>רווח</h2><p>הכנסות מטאב רכשו פחות כל ההוצאות מספר ההוצאות. לפני שעות העבודה שלך.</p></div>
+      <div class="grid2">
+        <div class="panel"><h3>הכנסות מול הוצאות לפי חודש</h3><div class="chart" id="plChart"></div></div>
+        <div class="panel"><h3>דוח רווח והפסד לתקופה</h3><div class="pl" id="plTable"></div></div>
+      </div>
+    </section>
+
+    <footer id="foot"></footer>
+  </main>
+  <div class="tip" id="tip" hidden></div>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+(function(){
+"use strict";
+const USD = 3, BE = 1.2, MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+const $ = id => document.getElementById(id);
+const fmt = (n, d=0) => (n==null||!isFinite(n)) ? '—' : Number(n).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
+const ils = n => (n==null||!isFinite(n)) ? '—' : '<bdi>'+fmt(n)+' ₪</bdi>';
+const pct = (a,b,d=0) => b ? fmt(a/b*100,d)+'%' : '—';
+const ratio = (a,b,d=1) => b ? fmt(a/b,d) : '—';
+const monthLabel = m => MONTHS_HE[+m.slice(5,7)-1] + ' ' + m.slice(2,4);
+const addDays = (iso, n) => { const d = new Date(Date.UTC(+iso.slice(0,4), +iso.slice(5,7)-1, +iso.slice(8,10) + n)); return d.toISOString().slice(0,10)+'T23:59'; };
+
+/* ---------- קבוצות ---------- */
+const G = {
+  old:{name:'אד סט ותיק / סיילוגרף', ch:'meta'}, car:{name:'קרוסלה', ch:'meta'}, newcar:{name:'קרוסלה חדשה', ch:'meta'},
+  yaheli:{name:'יהלי', ch:'meta'}, meta_other:{name:'מטא, מודעה לא מזוהה', ch:'meta'},
+  google:{name:'גוגל חיפוש', ch:'organic'}, organic:{name:'אורגני + גוגל חיפוש', ch:'organic'},
+  partner:{name:'שיתופי פעולה', ch:'partner'}, unknown:{name:'לא מיוחס', ch:'unknown'}
+};
+const META_G = ['old','newcar','car','yaheli','meta_other'];
+const CH = { meta:{name:'מטא', c:'var(--s-meta)'}, organic:{name:'אורגני', c:'var(--s-org)'}, partner:{name:'שיתופי פעולה', c:'var(--s-partner)'} };
+function groupOfText(...f){
+  const s = f.filter(Boolean).join(' ').toLowerCase();
+  if (!s.trim()) return null;
+  if (/newcarusela/.test(s)) return 'newcar';          // לפני carusela, אחרת הקרוסלה החדשה נבלעת
+  if (/carusela/.test(s)) return 'car';
+  if (/yaheli/.test(s)) return 'yaheli';
+  if (/salograf|advantage-plus|newebinar|set1ad|fbvideo|fbinter|\b1202\d{11,}\b/.test(s)) return 'old';
+  return null;
+}
+function regGroup(r){
+  const g = groupOfText(r.c, r.t, r.a, r.s); if (g) return g;
+  const s = (r.s||'').toLowerCase();
+  if (/^(facebook|fb|ig|instagram)$/.test(s)) return 'meta_other';
+  if (/google/.test(s)) return 'google';
+  if (/mail|sms|^reg/.test(s)) return 'rereg';                // הרשמה חוזרת מדיוור או תזכורת
+  if (!s || /organic|אורגני|homepage/.test(s)) return 'direct';  // הרשמה ישירה בלי מקור
+  return 'meta_other_src';
+}
+function adGroup(a){
+  if (/^לידים 25/.test(a.adset) || /הזמנה לוובינר/.test(a.name)) return 'old';
+  return groupOfText(a.name, a.adset) || 'meta_other';
+}
+function partnerOf(s){ s = s||''; if (/HTZONE|הייטקזון/i.test(s)) return 'HTZONE'; if (/BUYME|ביימי/i.test(s)) return 'BUYME'; if (/בסלון/.test(s)) return 'בסלון'; if (/עמית/.test(s)) return 'תוכנית עמית'; return ''; }
+
+/* ---------- אינדקס אנשים ---------- */
+const regs = DATA.regs.map(r => Object.assign({}, r, {g: regGroup(r)}));
+const byKey = new Map();
+const push = (m,k,v) => { if(!k) return; if(!m.has(k)) m.set(k,[]); m.get(k).push(v); };
+regs.forEach(r => { push(byKey, r.kp, r); push(byKey, r.km, r); });
+byKey.forEach(l => l.sort((a,b) => a.d < b.d ? -1 : 1));
+const orgByKey = new Map();
+DATA.organic.forEach(o => { push(orgByKey, o.kp, o); push(orgByKey, o.km, o); });
+const REAL = new Set(['old','newcar','car','yaheli','meta_other','google']);
+
+// Last Touch: ההרשמה האחרונה עם מקור אמיתי עד המועד. אחרת גיליון האורגניים. אחרת הרשמה ישירה = אורגני.
+function lastTouch(kp, km, until){
+  const list = [].concat(byKey.get(kp)||[], byKey.get(km)||[]);
+  let best = null, anyDirect = null;
+  for (const r of list){ if (r.d > until) continue; if (REAL.has(r.g)) { if (!best || r.d > best.d) best = r; } else if (r.g==='direct') anyDirect = r; }
+  if (best) return {g: best.g, d: best.d, how:'reg'};
+  const o = (orgByKey.get(kp)||orgByKey.get(km)||[]).find(x => x.d <= until);
+  if (o) return {g: o.ch==='partner' ? 'partner' : o.ch==='google' ? 'google' : 'organic', d:o.d, how:'org', p:o.p};
+  if (anyDirect) return {g:'organic', d:anyDirect.d, how:'direct'};
+  return null;
+}
+const attend = (rows, kind) => rows.map(x => { const t = lastTouch(x.kp, x.km, addDays(x.d,1)); return Object.assign({}, x, {kind, g: t ? t.g : 'unknown'}); });
+const deep = attend(DATA.deep, 'deep'), partial = attend(DATA.partial, 'partial');
+const organicRows = DATA.organic.map(o => Object.assign({}, o, {g: o.ch==='partner' ? 'partner' : o.ch==='google' ? 'google' : 'organic'}));
+
+// שיוך רכישות: שותף מפורש > מדרג 1 (Last Touch) > מדרג 2 (UTM בשורת הרכישה) > מדרג 3 (מקור הליד)
+const purchases = DATA.purchases.map(p => {
+  let g, tier, old = false, partner = partnerOf(p.src);
+  if (partner) { g = 'partner'; tier = 'source'; }
+  else {
+    const t = lastTouch(p.kp, p.km, p.d);
+    if (t && t.how === 'reg') { g = t.g; tier = 1; old = (new Date(p.d) - new Date(t.d)) / 864e5 > 90; }
+    else {
+      const u = groupOfText(p.c, p.t) || (/^(facebook|fb|ig)$/i.test(p.s) ? 'meta_other' : null);
+      if (u) { g = u; tier = 2; }
+      else if (/אורגני/.test(p.src)) { g = 'organic'; tier = 3; }
+      else if (groupOfText(p.src)) { g = groupOfText(p.src); tier = 3; }
+      else if (t) { g = t.g; tier = 1; partner = t.p || ''; }
+      else { g = 'unknown'; tier = 3; }
+    }
+  }
+  return Object.assign({}, p, {g, tier, old, partner});
+});
+
+/* ---------- תקופות ---------- */
+const genMonth = DATA.generated.slice(0,7);
+const months = []; { let y = +DATA.from.slice(0,4), m = +DATA.from.slice(5,7); for (;;) { const k = y+'-'+String(m).padStart(2,'0'); if (k > genMonth) break; months.push(k); if (++m > 12) { m = 1; y++; } } }
+let period = 'all';
+try { const s = localStorage.getItem('slavso-period'); if (s && (s==='all' || months.includes(s))) period = s; } catch(e){}
+const inP = d => d && d.slice(0,10) >= DATA.from && (period === 'all' || d.slice(0,7) === period);
+const pMonths = () => period === 'all' ? months : [period];
+
+/* ---------- הוצאות מטא ---------- */
+const ads = DATA.meta.ads.map(a => Object.assign({}, a, {g: adGroup(a)}));
+function metaSpendILS(g){ // null כשאין פילוח חודשי בדוח
+  const rows = ads.filter(a => !g || a.g === g);
+  if (DATA.meta.byDay) return rows.filter(a => inP(a.day)).reduce((s,a)=>s+a.spend,0) * USD;
+  if (period === 'all') return rows.reduce((s,a)=>s+a.spend,0) * USD;
+  return null;
+}
+const ledgerSum = (label) => { const r = DATA.ledger[label]; return r ? pMonths().reduce((s,m)=>s+(r[m]||0),0) : 0; };
+
+/* ---------- טולטיפ ---------- */
+const tip = $('tip');
+document.addEventListener('mousemove', e => { const t = e.target.closest('[data-tip]'); if (!t) { tip.hidden = true; return; } tip.innerHTML = t.dataset.tip; tip.hidden = false;
+  const w = tip.offsetWidth, h = tip.offsetHeight; let x = e.clientX - w - 12; if (x < 8) x = e.clientX + 12; let y = e.clientY - h - 12; if (y < 8) y = e.clientY + 16; tip.style.left = x+'px'; tip.style.top = y+'px'; });
+document.addEventListener('scroll', () => tip.hidden = true, {passive:true});
+
+function status(roas, buyers, spend){
+  if (!spend) return '<span class="pill p-mute">אין הוצאה</span>';
+  if (roas == null) return '<span class="pill p-mute">—</span>';
+  let p = roas < BE ? ['p-bad','מפסידה'] : roas < 2 ? ['p-warn','מכסה עלויות ישירות'] : roas < 3 ? ['p-mute','סבירה'] : ['p-good','בריאה'];
+  return '<span class="pill '+p[0]+'">'+p[1]+'</span>' + (buyers < 5 ? ' <span class="dim" style="font-size:11px">מדגם קטן</span>' : '');
+}
+const kpi = (label, val, sub, sw) => '<div class="kpi"><span>'+(sw?'<i class="sw" style="background:'+sw+'"></i>':'')+label+'</span><b>'+val+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</div>';
+
+/* ---------- רינדור ---------- */
+function render(){
+  document.querySelectorAll('#periods button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === period));
+  const pLabel = period === 'all' ? 'מ-'+DATA.from.split('-').reverse().join('.') : monthLabel(period);
+
+  // נתוני התקופה
+  const R = regs.filter(r => inP(r.d));
+  const Dp = deep.filter(x => inP(x.d)), Pp = partial.filter(x => inP(x.d));
+  const O = organicRows.filter(o => inP(o.d));
+  const B = purchases.filter(p => inP(p.d));
+  const leadsMeta = R.filter(r => G[r.g] && G[r.g].ch === 'meta');
+  const leadsOrg = O.filter(o => o.g !== 'partner').length + R.filter(r => r.g === 'google' || r.g === 'direct').length;
+  const leadsPartner = O.filter(o => o.g === 'partner').length;
+  const rereg = R.filter(r => r.g === 'rereg').length;
+  const leadsTotal = leadsMeta.length + leadsOrg + leadsPartner;
+  const calls = { deep: Dp.filter(x=>x.call).length, partial: Pp.filter(x=>x.call).length, organic: O.filter(o=>o.call).length };
+  const callsTotal = calls.deep + calls.partial + calls.organic;
+  const revenue = B.reduce((s,p)=>s+p.amt,0), kits = B.reduce((s,p)=>s+p.kit,0);
+  const costRows = Object.keys(DATA.ledger).filter(k => k !== 'מכירות' && k !== 'סהכ עלויות');
+  const costTotal = costRows.reduce((s,k)=>s+ledgerSum(k),0);
+  const profit = revenue - costTotal;
+
+  // שורת עדכון
+  const today = DATA.generated.slice(0,10);
+  $('fresh').innerHTML = '<span>עודכן: <b>'+DATA.generated.replace('T',' ')+'</b></span><span>תקופה: <b>'+pLabel+'</b></span><span>דוח מטא: <b>'+DATA.meta.start+' עד '+DATA.meta.end+'</b></span>';
+  const alerts = (DATA.warnings||[]).slice();
+  const lag = (new Date(today) - new Date(DATA.meta.end)) / 864e5;
+  if (lag > 2) alerts.push('דוח מטא מעודכן עד '+DATA.meta.end+' ('+Math.round(lag)+' ימים). נתוני ההוצאה והמודעות לא כוללים את הימים האחרונים. כדי לרענן: ייצוא חדש מ-Ads Manager לתיקיית ההורדות.');
+  $('alerts').innerHTML = alerts.map(a => '<div class="alert">'+a+'</div>').join('');
+
+  // משפך
+  const att = Dp.length + Pp.length;
+  $('funnel').innerHTML = [
+    ['לידים', fmt(leadsTotal), 'מטא '+fmt(leadsMeta.length)+' · אורגני '+fmt(leadsOrg)],
+    ['השתתפו בוובינר', fmt(att), '<strong>'+pct(att, R.length)+'</strong> מהנרשמות'],
+    ['השתתפות עומק', fmt(Dp.length), '<strong>'+pct(Dp.length, R.length)+'</strong> מהנרשמות'],
+    ['שיחות מכירה', fmt(callsTotal), 'יחס סגירה <strong>'+pct(B.filter(p=>/שיחה/.test(p.pay)).length, callsTotal)+'</strong>'],
+    ['רכישות', fmt(B.length), '<strong>'+pct(B.length, Dp.length)+'</strong> ממשתתפות העומק'],
+    ['רווח', ils(profit), 'מתוך הכנסות '+ils(revenue)]
+  ].map((f,i) => '<div class="fn'+(i===5?' money hi':'')+'"><span>'+f[0]+'</span><b>'+f[1]+'</b><em>'+f[2]+'</em></div>').join('');
+
+  /* 1. לידים */
+  $('leadKpis').innerHTML = kpi('סה"כ לידים', fmt(leadsTotal), pLabel)
+    + kpi('מטא', fmt(leadsMeta.length), pct(leadsMeta.length, leadsTotal)+' מהלידים', CH.meta.c)
+    + kpi('אורגני', fmt(leadsOrg), pct(leadsOrg, leadsTotal)+' מהלידים', CH.organic.c)
+    + kpi('שיתופי פעולה', fmt(leadsPartner), pct(leadsPartner, leadsTotal)+' מהלידים', CH.partner.c);
+  const byM = months.map(m => {
+    const r = regs.filter(x => x.d.slice(0,7) === m && x.d >= DATA.from), o = organicRows.filter(x => x.d.slice(0,7) === m);
+    return { m, meta: r.filter(x => G[x.g] && G[x.g].ch === 'meta').length, organic: o.filter(x=>x.g!=='partner').length + r.filter(x => x.g==='google'||x.g==='direct').length, partner: o.filter(x=>x.g==='partner').length };
+  });
+  stackChart($('leadChart'), byM, ['meta','organic','partner']);
+  const srcRows = [
+    ['מטא', null, leadsMeta.length],
+    ...META_G.map(g => [G[g].name, 'sub', leadsMeta.filter(r=>r.g===g).length]).filter(r => r[2]),
+    ['אורגני', null, leadsOrg],
+    ['פניות מהאתר (מסר 1)', 'sub', O.filter(o=>o.g==='organic').length],
+    ['גוגל חיפוש', 'sub', O.filter(o=>o.g==='google').length + R.filter(r=>r.g==='google').length],
+    ['הרשמה ישירה לוובינר בלי מקור', 'sub', R.filter(r=>r.g==='direct').length],
+    ['שיתופי פעולה', null, leadsPartner],
+    ...['HTZONE','BUYME','בסלון','תוכנית עמית'].map(p => [p, 'sub', O.filter(o=>o.p===p).length])
+  ];
+  $('leadTable').innerHTML = '<thead><tr><th>מקור</th><th class="n">לידים</th><th class="n">חלק</th></tr></thead><tbody>'
+    + srcRows.map(r => '<tr'+(r[1]?' class="sub"':'')+'><td>'+r[0]+'</td><td class="n">'+fmt(r[2])+'</td><td class="n">'+(r[1]?'':pct(r[2],leadsTotal))+'</td></tr>').join('')
+    + '<tr class="tot"><td>סה"כ</td><td class="n">'+fmt(leadsTotal)+'</td><td class="n">100%</td></tr></tbody>';
+  $('leadHint').textContent = rereg ? 'לא נספרו כלידים חדשים: '+fmt(rereg)+' הרשמות חוזרות לוובינר מתוך דיוור, SMS ותזכורות.' : '';
+
+  /* 2. מודעות */
+  const googleSpend = ledgerSum('עלות קמפיין גוגל');
+  // גוגל חיפוש ואורגני בשורה אחת, לפי ההגדרה העסקית. אין שיוך אמין בין השניים ברמת הרכישה.
+  const rowsDef = [...META_G.filter(g => g!=='meta_other' || leadsMeta.some(r=>r.g===g) || B.some(p=>p.g===g) || ads.some(a=>a.g===g)), 'organic', 'partner', 'unknown'];
+  const stat = g => {
+    const is = x => g==='organic' ? (x.g==='organic' || x.g==='google') : x.g===g;
+    const leads = g==='organic' ? leadsOrg : g==='partner' ? leadsPartner : g==='unknown' ? 0 : R.filter(r=>r.g===g).length;
+    const d = Dp.filter(is).length, pa = Pp.filter(is).length;
+    const c = Dp.filter(x=>is(x)&&x.call).length + Pp.filter(x=>is(x)&&x.call).length + O.filter(o=>is(o)&&o.call).length;
+    const bb = B.filter(is), rev = bb.reduce((s,p)=>s+p.amt,0), kit = bb.reduce((s,p)=>s+p.kit,0);
+    const spend = G[g].ch==='meta' ? metaSpendILS(g) : g==='organic' ? googleSpend : 0;
+    return {g, leads, d, pa, c, buyers: bb.length, rev, kit, spend};
+  };
+  const S = rowsDef.map(stat);
+  const metaTot = S.filter(s => G[s.g].ch==='meta').reduce((t,s) => { for (const k of ['leads','d','pa','c','buyers','rev','kit']) t[k]+=s[k]; t.spend = (t.spend==null||s.spend==null) ? null : t.spend + s.spend; return t; }, {leads:0,d:0,pa:0,c:0,buyers:0,rev:0,kit:0,spend:0});
+  const row = (s, name, cls) => {
+    const roas = s.spend ? s.rev / s.spend : null;
+    return '<tr'+(cls?' class="'+cls+'"':'')+'><td><div class="nm">'+name+'</div></td>'
+      + '<td class="n">'+(s.spend==null?'<span class="dim" data-tip="דוח מטא הנוכחי מצטבר ואין בו פילוח לפי יום">—</span>':s.spend?ils(s.spend):'<span class="dim">0</span>')+'</td>'
+      + '<td class="n">'+fmt(s.leads)+'</td><td class="n">'+(s.spend&&s.leads?ils(s.spend/s.leads):'—')+'</td>'
+      + '<td class="n">'+fmt(s.d)+'</td><td class="n">'+fmt(s.pa)+'</td><td class="n">'+fmt(s.c)+'</td>'
+      + '<td class="n">'+fmt(s.buyers)+'</td><td class="n">'+ils(s.rev)+'</td>'
+      + '<td class="n">'+(s.spend&&s.buyers?ils(s.spend/s.buyers):'—')+'</td>'
+      + '<td class="n">'+(roas==null?'—':fmt(roas,2))+'</td>'
+      + '<td class="n">'+(s.spend!=null&&s.spend?ils(s.rev - s.spend - s.kit):'—')+'</td>'
+      + '<td>'+(cls==='tot' || G[s.g].ch==='meta' ? status(roas, s.buyers, s.spend) : s.g==='organic' && s.spend ? '<span class="pill p-mute" data-tip="ה-ROAS מניח שכל ההכנסה האורגנית הגיעה מגוגל. זה הגבול העליון, לא מדידה.">גבול עליון</span>' : '')+'</td></tr>';
+  };
+  let adHtml = '<thead><tr><th>מקור</th><th class="n">הוצאה</th><th class="n">לידים</th><th class="n">עלות לליד</th><th class="n">עומק</th><th class="n">חלקי</th><th class="n">שיחות</th><th class="n">רוכשות</th><th class="n">הכנסות</th><th class="n">עלות לרוכשת</th><th class="n">ROAS</th><th class="n">רווח אחרי מדיה וערכות</th><th>מצב</th></tr></thead><tbody>';
+  adHtml += '<tr class="grp"><td colspan="13">מטא</td></tr>';
+  S.filter(s => G[s.g].ch==='meta').forEach(s => {
+    adHtml += row(s, '<i class="sw" style="background:var(--s-meta)"></i>'+G[s.g].name);
+    if (s.g === 'old' && period === 'all') ads.filter(a=>a.g==='old').forEach(a => adHtml += '<tr class="sub"><td>'+(/סיילוגרף/.test(a.name)?'סרטון סיילוגרף':/קרוסלה/.test(a.name)?'סרטון קרוסלה (באד סט הוותיק)':a.name)+' · '+(a.delivery==='active'?'פעילה':'כבויה')+'</td><td class="n">'+ils(a.spend*USD)+'</td><td colspan="11" class="dim">הוצאה בלבד. ה-UTM לא מפריד בין שתי המודעות באד סט.</td></tr>');
+  });
+  adHtml += row(metaTot, 'סה"כ מטא', 'tot');
+  adHtml += '<tr class="grp"><td colspan="13">גוגל, אורגני ושיתופי פעולה</td></tr>';
+  S.filter(s => G[s.g].ch!=='meta').forEach(s => { if (s.g==='unknown' && !s.buyers && !s.d && !s.pa) return; adHtml += row(s, '<i class="sw" style="background:'+(s.g==='partner'?'var(--s-partner)':s.g==='unknown'?'var(--line-2)':'var(--s-org)')+'"></i>'+G[s.g].name); });
+  const pp = {}; B.filter(p=>p.g==='partner').forEach(p => { const k = p.partner||partnerOf(p.src)||'אחר'; pp[k] = pp[k]||{n:0,r:0}; pp[k].n++; pp[k].r+=p.amt; });
+  Object.keys(pp).forEach(k => adHtml += '<tr class="sub"><td>'+k+'</td><td></td><td colspan="5"></td><td class="n">'+fmt(pp[k].n)+'</td><td class="n">'+ils(pp[k].r)+'</td><td colspan="4"></td></tr>');
+  $('adTable').innerHTML = adHtml + '</tbody>';
+  const tiers = {1:0,2:0,3:0,source:0}; B.forEach(p => tiers[p.tier]++);
+  const oldAttr = B.filter(p=>p.old).length;
+  $('adHint').innerHTML = 'שיוך רכישות: '+fmt(tiers[1])+' לפי Last Touch מאומת (מדרג 1), '+fmt(tiers[2])+' לפי UTM בשורת הרכישה, '+fmt(tiers[3])+' לפי עמודת מקור הליד, '+fmt(tiers.source)+' שותפים לפי מקור מפורש.'
+    + (oldAttr ? ' '+oldAttr+' רכישות נשענות על הרשמה בת יותר מ-90 יום.' : '')
+    + ' עומק, חלקי ושיחות משויכים לפי ההרשמה האחרונה של אותה משתתפת. בשורת אורגני + גוגל ההוצאה היא קמפיין גוגל מספר ההוצאות. רק '+fmt(R.filter(r=>r.g==="google").length + O.filter(o=>o.g==="google").length)+' לידים בתקופה נושאים סימון גוגל, ולכן אי אפשר עדיין להפריד את גוגל מהאורגני.';
+
+  const metaHdr = '<thead><tr><th>מודעה</th><th>קבוצה</th><th>סטטוס</th><th class="n">הוצאה $</th><th class="n">תוצאות</th><th class="n">עלות לתוצאה $</th><th class="n">CTR</th><th class="n">CPM $</th><th class="n">תדירות</th><th>דירוג איכות</th></tr></thead><tbody>';
+  const qual = q => !q || q === '-' ? '<span class="dim">אין דירוג</span>' : /Below/.test(q) ? '<span class="pill p-bad">'+(/10/.test(q)?'נמוך מאוד':'מתחת לממוצע')+'</span>' : /Above/.test(q) ? '<span class="pill p-good">מעל הממוצע</span>' : '<span class="pill p-mute">ממוצע</span>';
+  const shortName = a => /סיילוגרף/.test(a.name) ? 'סרטון סיילוגרף (ותיק)' : /קרוסלה/.test(a.name) ? 'סרטון קרוסלה (ותיק)' : a.name;
+  const mt = ads.slice().sort((a,b)=>b.spend-a.spend);
+  $('metaTable').innerHTML = metaHdr + mt.map(a => '<tr><td>'+shortName(a)+'</td><td class="dim">'+G[a.g].name+'</td><td>'+(a.delivery==='active'?'<span class="pill p-good">פעילה</span>':'<span class="pill p-mute">כבויה</span>')+'</td><td class="n">'+fmt(a.spend,0)+'</td><td class="n">'+fmt(a.results)+'</td><td class="n">'+(a.results?fmt(a.spend/a.results,2):'—')+'</td><td class="n">'+fmt(a.ctr,2)+'%</td><td class="n">'+fmt(a.cpm,2)+'</td><td class="n">'+fmt(a.freq,2)+'</td><td>'+qual(a.quality)+'</td></tr>').join('')
+    + '<tr class="tot"><td>סה"כ</td><td></td><td></td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.spend,0))+'</td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.results,0))+'</td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.spend,0)/Math.max(1,mt.reduce((s,a)=>s+a.results,0)),2)+'</td><td colspan="4"></td></tr></tbody>';
+  $('metaHint').textContent = 'נתוני Ads Manager לכל טווח הדוח ('+DATA.meta.start+' עד '+DATA.meta.end+'), לא מושפעים מבחירת התקופה. "תוצאות" = אירוע NEWEBINAR בפיקסל.';
+
+  /* 3. וובינר */
+  $('webKpis').innerHTML = kpi('נרשמות לוובינר', fmt(R.length), 'כל ההרשמות בתקופה, כולל חוזרות')
+    + kpi('משתתפות עומק', fmt(Dp.length), pct(Dp.length, R.length,1)+' מהנרשמות')
+    + kpi('משתתפות חלקית', fmt(Pp.length), pct(Pp.length, R.length,1)+' מהנרשמות')
+    + kpi('סה"כ השתתפו', fmt(att), pct(att, R.length,1)+' מהנרשמות');
+  $('webTable').innerHTML = '<thead><tr><th>חודש</th><th class="n">נרשמות</th><th class="n">עומק</th><th class="n">% עומק</th><th class="n">חלקי</th><th class="n">% חלקי</th><th class="n">סה"כ השתתפו</th><th class="n">% השתתפות</th><th class="n">רכישות</th><th class="n">רכישות ממשתתפות עומק</th></tr></thead><tbody>'
+    + months.map(m => { const r = regs.filter(x=>x.d.slice(0,7)===m).length, d = deep.filter(x=>x.d.slice(0,7)===m).length, p = partial.filter(x=>x.d.slice(0,7)===m).length, b = purchases.filter(x=>x.d.slice(0,7)===m).length;
+      return '<tr'+(period!=='all'&&period!==m?' class="sub"':'')+'><td>'+monthLabel(m)+(m===genMonth?' <span class="dim">(חלקי)</span>':'')+'</td><td class="n">'+fmt(r)+'</td><td class="n">'+fmt(d)+'</td><td class="n">'+pct(d,r,1)+'</td><td class="n">'+fmt(p)+'</td><td class="n">'+pct(p,r,1)+'</td><td class="n">'+fmt(d+p)+'</td><td class="n">'+pct(d+p,r,1)+'</td><td class="n">'+fmt(b)+'</td><td class="n">'+pct(b,d,1)+'</td></tr>'; }).join('') + '</tbody>';
+
+  /* 4. שיחות */
+  const viaCall = B.filter(p=>/שיחה/.test(p.pay)).length, viaAuto = B.filter(p=>/אוטומט/.test(p.pay)).length;
+  $('callKpis').innerHTML = kpi('שיחות מכירה', fmt(callsTotal), pLabel)
+    + kpi('למשתתפות עומק', fmt(calls.deep), pct(calls.deep, Dp.length)+' מהן קיבלו שיחה')
+    + kpi('למשתתפות חלקית', fmt(calls.partial), pct(calls.partial, Pp.length)+' מהן קיבלו שיחה')
+    + kpi('ללידים אורגניים', fmt(calls.organic), pct(calls.organic, O.length)+' מהם קיבלו שיחה')
+    + kpi('רכישות שנסגרו בשיחה', fmt(viaCall), 'יחס סגירה '+pct(viaCall, callsTotal)+' מהשיחות');
+  const hb = (el, rows, max) => { max = max || Math.max(1,...rows.map(r=>r[1])); el.innerHTML = rows.map(r => '<div class="hrow" data-tip="'+r[0]+': '+r[2]+'"><span>'+r[0]+'</span><div class="tr"><i style="width:'+(r[1]/max*100)+'%;'+(r[3]?'background:'+r[3]:'')+'"></i></div><b>'+r[2]+'</b></div>').join(''); };
+  hb($('callCover'), [['משתתפות עומק', Dp.length? calls.deep/Dp.length*100:0, fmt(calls.deep)+' מתוך '+fmt(Dp.length)+' · '+pct(calls.deep,Dp.length)],
+                      ['משתתפות חלקית', Pp.length? calls.partial/Pp.length*100:0, fmt(calls.partial)+' מתוך '+fmt(Pp.length)+' · '+pct(calls.partial,Pp.length)],
+                      ['לידים אורגניים', O.length? calls.organic/O.length*100:0, fmt(calls.organic)+' מתוך '+fmt(O.length)+' · '+pct(calls.organic,O.length)]], 100);
+  hb($('closeWay'), [['בשיחה', viaCall, fmt(viaCall)+' · '+pct(viaCall,B.length)], ['רכישה עצמאית', viaAuto, fmt(viaAuto)+' · '+pct(viaAuto,B.length), 'var(--s-org)'], ['לא צוין', B.length-viaCall-viaAuto, fmt(B.length-viaCall-viaAuto), 'var(--s-partner)']].filter(r=>r[1]||r[0]!=='לא צוין'), B.length);
+
+  /* 5. רכישות */
+  const chRev = ch => B.filter(p => G[p.g].ch === ch).reduce((s,p)=>s+p.amt,0), chN = ch => B.filter(p => G[p.g].ch === ch).length;
+  $('saleKpis').innerHTML = kpi('רכישות', fmt(B.length), pLabel) + kpi('הכנסות', ils(revenue), 'לפני מע"מ ועמלות, כפי שנרשם')
+    + kpi('עסקה ממוצעת', ils(B.length ? revenue/B.length : null), fmt(B.filter(p=>/מקיף/.test(p.prod)).length)+' קורסים מקיפים')
+    + kpi('עלות ערכות ומשלוח', ils(kits), 'לפי הרכישות בתקופה');
+  hb($('saleSrc'), [['מטא', chRev('meta'), ils(chRev('meta'))+' · '+fmt(chN('meta'))+' רוכשות', CH.meta.c], ['אורגני וגוגל', chRev('organic'), ils(chRev('organic'))+' · '+fmt(chN('organic'))+' רוכשות', CH.organic.c], ['שיתופי פעולה', chRev('partner'), ils(chRev('partner'))+' · '+fmt(chN('partner'))+' רוכשות', CH.partner.c], ['לא מיוחס', chRev('unknown'), ils(chRev('unknown'))+' · '+fmt(chN('unknown'))+' רוכשות', 'var(--line-2)']].filter(r => r[1] || r[0] !== 'לא מיוחס'));
+  $('attrHint').textContent = 'חלק האורגני מההכנסות: '+pct(chRev('organic'), revenue)+'. אורגני לא נספר בהכנסות מטא וב-ROAS.';
+  const prods = {}; B.forEach(p => { const k = p.prod || 'לא צוין'; prods[k] = prods[k] || {n:0, r:0}; prods[k].n++; prods[k].r += p.amt; });
+  $('prodTable').innerHTML = '<thead><tr><th>מוצר</th><th class="n">רכישות</th><th class="n">הכנסות</th><th class="n">ממוצע</th></tr></thead><tbody>'
+    + Object.entries(prods).sort((a,b)=>b[1].r-a[1].r).map(([k,v]) => '<tr><td>'+k+'</td><td class="n">'+fmt(v.n)+'</td><td class="n">'+ils(v.r)+'</td><td class="n">'+ils(v.r/v.n)+'</td></tr>').join('')
+    + '<tr class="tot"><td>סה"כ</td><td class="n">'+fmt(B.length)+'</td><td class="n">'+ils(revenue)+'</td><td class="n">'+ils(B.length?revenue/B.length:null)+'</td></tr></tbody>';
+
+  /* 6. הוצאות */
+  const CAT = [['פרסום מטא', ['עלות קמפיין פייסבוק']], ['פרסום גוגל', ['עלות קמפיין גוגל']], ['ערכות חומרים ומשלוחים', ['ערכת חומרים+משלוחים']], ['אנשי מקצוע', ['ליווי מקצועי','איש אוטומציות']]];
+  const used = new Set(CAT.flatMap(c=>c[1])); CAT.push(['מערכות וכלים', costRows.filter(k => !used.has(k))]);
+  const catVal = CAT.map(([n, ks]) => [n, ks.reduce((s,k)=>s+ledgerSum(k),0), ks]);
+  const media = catVal[0][1] + catVal[1][1];
+  $('costKpis').innerHTML = kpi('סה"כ הוצאות', ils(costTotal), pLabel) + kpi('פרסום', ils(media), pct(media, costTotal)+' מההוצאות') + kpi('עלות רכישת לקוחה כוללת', ils(B.length?costTotal/B.length:null), 'כל ההוצאות חלקי מספר הרוכשות') + kpi('עלות פרסום לרוכשת', ils(B.length?media/B.length:null), 'מטא + גוגל חלקי כל הרוכשות');
+  $('costTable').innerHTML = '<thead><tr><th>קטגוריה</th>'+pMonths().map(m=>'<th class="n">'+monthLabel(m)+'</th>').join('')+(pMonths().length>1?'<th class="n">סה"כ</th>':'')+'</tr></thead><tbody>'
+    + catVal.map(([n, v, ks]) => '<tr><td>'+n+'</td>'+pMonths().map(m => '<td class="n">'+ils(ks.reduce((s,k)=>s+((DATA.ledger[k]||{})[m]||0),0))+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(v)+'</td>':'')+'</tr>'
+      + (n==='מערכות וכלים' || n==='אנשי מקצוע' ? ks.filter(k=>ledgerSum(k)).map(k => '<tr class="sub"><td>'+k+'</td>'+pMonths().map(m=>'<td class="n">'+ils((DATA.ledger[k]||{})[m]||0)+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(ledgerSum(k))+'</td>':'')+'</tr>').join('') : '')).join('')
+    + '<tr class="tot"><td>סה"כ</td>'+pMonths().map(m=>'<td class="n">'+ils(costRows.reduce((s,k)=>s+((DATA.ledger[k]||{})[m]||0),0))+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(costTotal)+'</td>':'')+'</tr></tbody>';
+  const sheetTot = ledgerSum('סהכ עלויות'), metaCsv = period==='all' ? ads.reduce((s,a)=>s+a.spend,0)*USD : null, metaLedger = ledgerSum('עלות קמפיין פייסבוק');
+  let chk = '';
+  if (Math.abs(sheetTot - costTotal) > 1) chk += '<p style="margin:0 0 8px"><b>סה"כ העלויות בגיליון גבוה ב-'+ils(sheetTot-costTotal)+'.</b> הנוסחה בשורה "סהכ עלויות" בטאב דוח חודשי כוללת גם את השורה "עלות ליד", שהיא מדד ולא הוצאה. כאן הסכום מחושב בלעדיה.</p>';
+  if (metaCsv != null) chk += '<p style="margin:0 0 8px">הוצאת מטא לפי דוח Ads Manager: <b>'+ils(metaCsv)+'</b> (לפי 1$ = 3 ₪). לפי ספר ההוצאות: <b>'+ils(metaLedger)+'</b>. הפער: '+ils(metaCsv-metaLedger)+'. טבלת המודעות משתמשת בדוח מטא. הרווח משתמש בספר ההוצאות.</p>';
+  else chk += '<p style="margin:0 0 8px">בחודש בודד הוצאת מטא מגיעה מספר ההוצאות בלבד. דוח מטא הנוכחי מצטבר ואין בו פילוח יומי.</p>';
+  const ledgerSales = ledgerSum('מכירות');
+  chk += '<p style="margin:0">הכנסות לפי טאב רכשו: <b>'+ils(revenue)+'</b>. שורת "מכירות" בדוח החודשי: <b>'+ils(ledgerSales)+'</b>.'+(Math.abs(ledgerSales-revenue)>1?' הפער: '+ils(revenue-ledgerSales)+'. בדרך כלל זה אומר שהדוח החודשי עוד לא עודכן ברכישות האחרונות.':' תואם.')+'</p>';
+  $('costCheck').innerHTML = chk;
+
+  /* 7. רווח */
+  const plM = months.map(m => { const rev = purchases.filter(p=>p.d.slice(0,7)===m).reduce((s,p)=>s+p.amt,0), cost = costRows.reduce((s,k)=>s+((DATA.ledger[k]||{})[m]||0),0); return {m, rev, cost, profit: rev-cost}; });
+  groupChart($('plChart'), plM);
+  const metaGross = metaTot.spend != null ? metaTot.rev - metaTot.spend - metaTot.kit : null;
+  $('plTable').innerHTML = '<div><span>הכנסות</span><b>'+ils(revenue)+'</b></div>'
+    + catVal.map(([n,v]) => '<div><span>'+n+'</span><b class="neg"><bdi>−'+fmt(v)+' ₪</bdi></b></div>').join('')
+    + '<div class="t"><span>רווח נקי'+(period===genMonth||period==='all'?' <span class="dim" style="font-weight:400;font-size:12px">(כולל חודש נוכחי חלקי)</span>':'')+'</span><b'+(profit<0?' class="neg"':'')+'>'+ils(profit)+'</b></div>'
+    + '<div><span>שיעור רווח</span><b>'+pct(profit, revenue)+'</b></div>'
+    + '<div><span>יחס הכנסות להוצאות</span><b>'+ratio(revenue, costTotal, 2)+'</b></div>'
+    + (metaGross!=null ? '<div><span>רווח גולמי ממטא אחרי מדיה וערכות</span><b>'+ils(metaGross)+'</b></div>' : '');
+
+  $('foot').innerHTML = 'מקורות: גיליון "וובינר אוטומטי - קובץ לידים" (נרשמים, הגיע 35, הגיע פחות מ 35, רכשו, דוח חודשי), גיליון "[אוטומציה] קורס דיגיטלי Slav&So - ליד חדש" (מסר 1), ודוח Meta '+DATA.meta.file+'. הגיליונות נקראים בלבד ולא משתנים. פרטים מזהים (טלפון ומייל) הוחלפו במפתח מוצפן לפני הבנייה, ושמות לא נשמרים בדאשבורד.';
+}
+
+/* ---------- גרפים ---------- */
+function niceMax(v){ if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+function gridLines(max, fmtFn){ return [0.5, 1].map(f => '<div class="gl" style="bottom:'+(f*100)+'%"><span>'+fmtFn(max*f)+'</span></div>').join(''); }
+function stackChart(el, data, keys){
+  const max = niceMax(Math.max(...data.map(d => keys.reduce((s,k)=>s+d[k],0))));
+  el.innerHTML = '<div class="bars">'+gridLines(max, v=>fmt(v))+data.map(d => { const tot = keys.reduce((s,k)=>s+d[k],0);
+    const tipTxt = '<b>'+monthLabel(d.m)+'</b><br>'+keys.map(k => CH[k].name+': '+fmt(d[k])).join('<br>')+'<br>סה"כ: '+fmt(tot);
+    return '<div class="col" data-tip="'+tipTxt.replace(/"/g,'&quot;')+'" style="'+(period!=='all'&&period!==d.m?'opacity:.35':'')+'">'
+      + keys.map(k => d[k] ? '<div class="seg" style="height:calc('+(d[k]/max*100)+'% - 2px);background:'+CH[k].c+'"></div>' : '').join('')
+      + '<div class="top" style="bottom:calc('+(tot/max*100)+'% + 4px)">'+fmt(tot)+'</div></div>'; }).join('')+'</div>'
+    + '<div class="xl">'+data.map(d => '<span>'+monthLabel(d.m)+(d.m===genMonth?'*':'')+'</span>').join('')+'</div>'
+    + '<div class="legend">'+keys.map(k => '<span><i class="sw" style="background:'+CH[k].c+'"></i>'+CH[k].name+'</span>').join('')+'<span class="dim">* חודש חלקי</span></div>';
+}
+function groupChart(el, data){
+  const max = niceMax(Math.max(...data.map(d => Math.max(d.rev, d.cost))));
+  el.innerHTML = '<div class="bars">'+gridLines(max, v=>fmt(v/1000,0)+'K')+data.map(d => {
+    const tipTxt = '<b>'+monthLabel(d.m)+'</b><br>הכנסות: '+fmt(d.rev)+' ₪<br>הוצאות: '+fmt(d.cost)+' ₪<br>רווח: '+fmt(d.profit)+' ₪';
+    return '<div class="gcol" data-tip="'+tipTxt.replace(/"/g,'&quot;')+'" style="'+(period!=='all'&&period!==d.m?'opacity:.35':'')+'"><div class="b" style="height:'+(d.rev/max*100)+'%;background:var(--s-meta)"></div><div class="b" style="height:'+(d.cost/max*100)+'%;background:var(--s-org)"></div></div>'; }).join('')+'</div>'
+    + '<div class="xl">'+data.map(d => '<span>'+monthLabel(d.m)+(d.m===genMonth?'*':'')+'<br><b style="color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums'+(d.profit<0?';color:var(--bad)':'')+'"><bdi>'+fmt(d.profit)+' ₪</bdi></b></span>').join('')+'</div>'
+    + '<div class="legend"><span><i class="sw" style="background:var(--s-meta)"></i>הכנסות</span><span><i class="sw" style="background:var(--s-org)"></i>הוצאות</span><span class="dim">המספר מתחת לחודש: רווח. * חודש חלקי</span></div>';
+}
+
+/* ---------- בורר תקופה ---------- */
+$('periods').innerHTML = '<button type="button" id="p-all" data-p="all">הכל</button>' + months.map(m => '<button type="button" id="p-'+m+'" data-p="'+m+'">'+monthLabel(m)+'</button>').join('');
+$('periods').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; period = b.dataset.p; try { localStorage.setItem('slavso-period', period); } catch(err){} render(); });
+render();
+})();
+</script>
