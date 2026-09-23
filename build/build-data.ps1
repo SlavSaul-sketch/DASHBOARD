@@ -1,6 +1,7 @@
 ﻿param(
   [Parameter(Mandatory)] [string]$CsvDir,    # תיקייה עם ה-CSV של הטאבים (פלט של xlsx2csv.ps1) + tabs.txt
-  [Parameter(Mandatory)] [string]$MetaCsv,   # דוח Meta ברמת מודעה
+  [string]$MetaJson,                        # מקור מועדף: תשובת Airtable (list_records_for_table) שמורה כקובץ JSON
+  [string]$MetaCsv,                         # חלופה: דוח Meta ברמת מודעה מ-Ads Manager
   [string]$From = '2026-06-01',              # תחילת הניתוח
   [string]$Template = (Join-Path $PSScriptRoot 'dashboard.template.html'),
   [string]$Out = (Join-Path (Split-Path $PSScriptRoot) 'dashboard.html')
@@ -123,20 +124,49 @@ foreach ($row in $ledgerLines) {
   }
 }
 
-# ---------- דוח Meta ----------
-$metaLines = [IO.File]::ReadAllLines($MetaCsv, [Text.Encoding]::UTF8)
-$mh = ($metaLines[0] | ConvertFrom-Csv -Header (1..200 | ForEach-Object { "c$_" })).PSObject.Properties | Where-Object { $_.Value -ne $null } | ForEach-Object { $_.Value }
-$seen = @{}; $mnames = foreach ($h in $mh) { if ($seen[$h]) { $seen[$h]++; "$h`_$($seen[$h])" } else { $seen[$h] = 1; $h } }
-$metaRows = $metaLines[1..($metaLines.Count - 1)] | Where-Object { $_.Trim() } | ConvertFrom-Csv -Header $mnames
-$dayCol = @('Day', 'Date') | Where-Object { $mnames -contains $_ } | Select-Object -First 1
-$ads = foreach ($r in $metaRows) {
-  [ordered]@{ name = ("$($r.'Ad name')" -replace '[‎‏]', '').Trim(); adset = ("$($r.'Ad set name')" -replace '[‎‏]', '').Trim()
-    day = if ($dayCol) { "$($r.$dayCol)" } else { '' }; delivery = "$($r.'Ad delivery')"
-    spend = Num $r.'Amount spent (USD)'; results = Num $r.Results; impr = Num $r.Impressions; reach = Num $r.Reach
-    clicks = Num $r.'Clicks (all)'; ctr = Num $r.'CTR (all)'; cpm = Num $r.'CPM (cost per 1,000 impressions) (USD)'; freq = Num $r.Frequency
-    quality = "$($r.'Quality ranking')"; engage = "$($r.'Engagement rate ranking')"; conv = "$($r.'Conversion rate ranking')" }
-}
-$metaStart = ($metaRows | Select-Object -First 1).'Reporting starts'; $metaEnd = ($metaRows | Select-Object -First 1).'Reporting ends'
+# ---------- דוח Meta: מ-Airtable (מועדף) או מ-CSV ----------
+$dayCol = $null
+if ($MetaJson) {
+  $F = @{ name = 'fldSdJnT6GnXzn3Pb'; start = 'fldxMbBfWxMRtzlja'; end = 'fldg3FFYMPtYeyWfP'; adset = 'fld6kXgRnvl1z0gAX'; status = 'fldPKy2nyreN1Rj4K'
+    results = 'fldRTbvFixo9brFzM'; spend = 'fldXDNsxLK7u58dyn'; impr = 'fldY6X4DUVuzUq1PH'; reach = 'fldpam1vhLOjG2CPG'; freq = 'fldQgOmL2XR3HUpyc'
+    cpm = 'fldn3ndcEZ5aYCy1s'; ctr = 'fldygB7Nwb56DLc50'; clicks = 'fldtR4qpA4rXF5mdw'; quality = 'fldF6YZUzLx5ad4UQ' }
+  $payload = [IO.File]::ReadAllText($MetaJson, [Text.Encoding]::UTF8) | ConvertFrom-Json
+  function Cell($c, $k) { $v = $c.($F[$k]); if ($v -eq $null) { '' } elseif ($v.PSObject.Properties['name']) { "$($v.name)" } else { "$v" } }
+  $rows = foreach ($r in $payload.records) {
+    $c = $r.cellValuesByFieldId; if (-not $c) { $c = $r.fields }
+    $o = [ordered]@{ name = ((Cell $c 'name') -replace '[\u200e\u200f]', '').Trim(); adset = ((Cell $c 'adset') -replace '[\u200e\u200f]', '').Trim()
+      start = (Cell $c 'start'); end = (Cell $c 'end'); day = ''; delivery = (Cell $c 'status')
+      spend = Num (Cell $c 'spend'); results = Num (Cell $c 'results'); impr = Num (Cell $c 'impr'); reach = Num (Cell $c 'reach')
+      clicks = Num (Cell $c 'clicks'); ctr = (Num (Cell $c 'ctr')) * 100; cpm = Num (Cell $c 'cpm'); freq = Num (Cell $c 'freq')
+      quality = $(if (Cell $c 'quality') { Cell $c 'quality' } else { '-' }); engage = '-'; conv = '-' }
+    if ($o.name -and $o.start -and $o.end) { $o.start = $o.start.Substring(0, 10); $o.end = $o.end.Substring(0, 10); $o }
+  }
+  if (-not $rows) { throw 'בטבלת Airtable לא נמצאו שורות עם שם מודעה ותאריכי דוח.' }
+  if (@($rows | Where-Object { $_.start -ne $_.end }).Count -eq 0) { $dayCol = 'day'; foreach ($o in $rows) { $o.day = $o.start }; $ads = $rows }
+  else {
+    # הטבלה יכולה להכיל כמה דוחות מצטברים. לוקחים את האחרון (סוף מאוחר, ואז התחלה מוקדמת), שורה אחת לכל מודעה.
+    $latestEnd = ($rows | ForEach-Object { $_.end } | Sort-Object | Select-Object -Last 1)
+    $atEnd = @($rows | Where-Object { $_.end -eq $latestEnd }); $earliest = ($atEnd | ForEach-Object { $_.start } | Sort-Object | Select-Object -First 1)
+    $seenAds = @{}; $ads = foreach ($o in $atEnd) { if ($o.start -eq $earliest -and -not $seenAds[$o.name]) { $seenAds[$o.name] = 1; $o } }
+  }
+  $metaStart = ($ads | ForEach-Object { $_.start } | Sort-Object | Select-Object -First 1); $metaEnd = ($ads | ForEach-Object { $_.end } | Sort-Object | Select-Object -Last 1)
+  $metaFile = 'Airtable'; $metaSource = 'airtable'
+} elseif ($MetaCsv) {
+  $metaLines = [IO.File]::ReadAllLines($MetaCsv, [Text.Encoding]::UTF8)
+  $mh = ($metaLines[0] | ConvertFrom-Csv -Header (1..200 | ForEach-Object { "c$_" })).PSObject.Properties | Where-Object { $_.Value -ne $null } | ForEach-Object { $_.Value }
+  $seen = @{}; $mnames = foreach ($h in $mh) { if ($seen[$h]) { $seen[$h]++; "$h`_$($seen[$h])" } else { $seen[$h] = 1; $h } }
+  $metaRows = $metaLines[1..($metaLines.Count - 1)] | Where-Object { $_.Trim() } | ConvertFrom-Csv -Header $mnames
+  $dayCol = @('Day', 'Date') | Where-Object { $mnames -contains $_ } | Select-Object -First 1
+  $ads = foreach ($r in $metaRows) {
+    [ordered]@{ name = ("$($r.'Ad name')" -replace '[\u200e\u200f]', '').Trim(); adset = ("$($r.'Ad set name')" -replace '[\u200e\u200f]', '').Trim()
+      day = if ($dayCol) { "$($r.$dayCol)" } else { '' }; delivery = "$($r.'Ad delivery')"
+      spend = Num $r.'Amount spent (USD)'; results = Num $r.Results; impr = Num $r.Impressions; reach = Num $r.Reach
+      clicks = Num $r.'Clicks (all)'; ctr = Num $r.'CTR (all)'; cpm = Num $r.'CPM (cost per 1,000 impressions) (USD)'; freq = Num $r.Frequency
+      quality = "$($r.'Quality ranking')"; engage = "$($r.'Engagement rate ranking')"; conv = "$($r.'Conversion rate ranking')" }
+  }
+  $metaStart = ($metaRows | Select-Object -First 1).'Reporting starts'; $metaEnd = ($metaRows | Select-Object -First 1).'Reporting ends'
+  $metaFile = (Split-Path $MetaCsv -Leaf); $metaSource = 'csv'
+} else { throw 'חסר מקור לנתוני מטא: יש להעביר -MetaJson (תשובת Airtable) או -MetaCsv.' }
 
 # ---------- בדיקות שפיות ----------
 $lastPurchase = ($purch | ForEach-Object { $_.d } | Sort-Object | Select-Object -Last 1)
@@ -150,7 +180,7 @@ if ($noKey) { $warnings.Add("$noKey רכישות בלי טלפון או מייל
 
 $data = [ordered]@{
   generated = (Get-Date).ToString('yyyy-MM-ddTHH:mm'); from = $From
-  meta = [ordered]@{ start = $metaStart; end = $metaEnd; file = (Split-Path $MetaCsv -Leaf); byDay = [bool]$dayCol; ads = @($ads) }
+  meta = [ordered]@{ start = $metaStart; end = $metaEnd; file = $metaFile; source = $metaSource; byDay = [bool]$dayCol; ads = @($ads) }
   regs = @($regs); deep = $deep; partial = $partial; organic = @($organic); purchases = @($purch)
   ledger = $ledger; warnings = @($warnings)
 }

@@ -52,6 +52,17 @@ bdi{unicode-bidi:isolate}
 .periods button:hover{color:var(--band-ink);border-color:var(--band-ink-2)}
 .periods button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#0F1212;font-weight:600}
 .periods button:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sync{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sync-btn{font:inherit;font-size:13px;display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--band-ink);border:1px solid var(--accent);border-radius:999px;padding:4px 12px;cursor:pointer}
+.sync-btn:hover{background:var(--accent);color:#0F1212}
+.sync-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sync-btn[disabled]{opacity:.6;cursor:progress}
+.sync-btn[disabled] svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(-360deg)}}
+@media (prefers-reduced-motion:reduce){.sync-btn[disabled] svg{animation:none}}
+.sync-msg{font-size:12px;color:var(--band-ink-2);max-width:46ch}
+.sync-msg.ok{color:var(--accent)}
+.sync-msg.err{color:#F2A49D}
 .nav{max-width:1240px;margin:0 auto;display:flex;gap:18px;overflow-x:auto;padding-block:0 10px;scrollbar-width:none}
 .nav a{color:var(--band-ink-2);text-decoration:none;font-size:13px;white-space:nowrap}
 .nav a:hover{color:var(--accent)}
@@ -174,6 +185,10 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
         <div class="brand-sub">לוח בקרה: קמפיינים, וובינר ומכירות</div>
       </div>
       <div class="periods" id="periods" role="group" aria-label="תקופה"></div>
+      <div class="sync" id="syncBox" hidden>
+        <button type="button" id="syncBtn" class="sync-btn"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 0 1-9.9 3.3M2.5 8a5.5 5.5 0 0 1 9.9-3.3M12.6 1.8v3h-3M3.4 14.2v-3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="syncLabel">סנכרון מטא מ-Airtable</span></button>
+        <span class="sync-msg" id="syncMsg" role="status" aria-live="polite"></span>
+      </div>
     </div>
     <nav class="nav" aria-label="מקטעים">
       <a href="#leads">לידים</a><a href="#ads">ביצועי מודעות</a><a href="#webinar">וובינר</a><a href="#calls">שיחות</a><a href="#sales">רכישות</a><a href="#costs">הוצאות</a><a href="#profit">רווח</a>
@@ -345,7 +360,9 @@ const inP = d => d && d.slice(0,10) >= DATA.from && (period === 'all' || d.slice
 const pMonths = () => period === 'all' ? months : [period];
 
 /* ---------- הוצאות מטא ---------- */
-const ads = DATA.meta.ads.map(a => Object.assign({}, a, {g: adGroup(a)}));
+let ads = [];
+function applyMeta(meta){ DATA.meta = meta; ads = meta.ads.map(a => Object.assign({}, a, {g: adGroup(a)})); }
+applyMeta(DATA.meta);
 function metaSpendILS(g){ // null כשאין פילוח חודשי בדוח
   const rows = ads.filter(a => !g || a.g === g);
   if (DATA.meta.byDay) return rows.filter(a => inP(a.day)).reduce((s,a)=>s+a.spend,0) * USD;
@@ -392,10 +409,10 @@ function render(){
 
   // שורת עדכון
   const today = DATA.generated.slice(0,10);
-  $('fresh').innerHTML = '<span>עודכן: <b>'+DATA.generated.replace('T',' ')+'</b></span><span>תקופה: <b>'+pLabel+'</b></span><span>דוח מטא: <b>'+DATA.meta.start+' עד '+DATA.meta.end+'</b></span>';
+  $('fresh').innerHTML = '<span>עודכן: <b>'+DATA.generated.replace('T',' ')+'</b></span><span>תקופה: <b>'+pLabel+'</b></span><span>דוח מטא: <b>'+DATA.meta.start+' עד '+DATA.meta.end+'</b>'+(DATA.meta.syncedAt?' · סונכרן מ-Airtable '+DATA.meta.syncedAt.replace('T',' '):DATA.meta.source==='airtable'?' · מ-Airtable':'')+'</span>';
   const alerts = (DATA.warnings||[]).slice();
   const lag = (new Date(today) - new Date(DATA.meta.end)) / 864e5;
-  if (lag > 2) alerts.push('דוח מטא מעודכן עד '+DATA.meta.end+' ('+Math.round(lag)+' ימים). נתוני ההוצאה והמודעות לא כוללים את הימים האחרונים. כדי לרענן: ייצוא חדש מ-Ads Manager לתיקיית ההורדות.');
+  if (lag > 2) alerts.push('דוח מטא מעודכן עד '+DATA.meta.end+' ('+Math.round(lag)+' ימים). נתוני ההוצאה והמודעות לא כוללים את הימים האחרונים. כדי לרענן: לעדכן את הטבלה ב-Airtable וללחוץ על "סנכרון מטא מ-Airtable".');
   $('alerts').innerHTML = alerts.map(a => '<div class="alert">'+a+'</div>').join('');
 
   // משפך
@@ -580,5 +597,90 @@ function groupChart(el, data){
 $('periods').innerHTML = '<button type="button" id="p-all" data-p="all">הכל</button>' + months.map(m => '<button type="button" id="p-'+m+'" data-p="'+m+'">'+monthLabel(m)+'</button>').join('');
 $('periods').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; period = b.dataset.p; try { localStorage.setItem('slavso-period', period); } catch(err){} render(); });
 render();
+
+/* ---------- סנכרון מטא מ-Airtable (קריאה בלבד) ---------- */
+const AT = { server:'Airtable', tool:'list_records_for_table', baseId:'appD8WL3JrOJGZ4ZQ', tableId:'tblCU3r1J5qCYKJYG',
+  f:{ name:'fldSdJnT6GnXzn3Pb', start:'fldxMbBfWxMRtzlja', end:'fldg3FFYMPtYeyWfP', adset:'fld6kXgRnvl1z0gAX', status:'fldPKy2nyreN1Rj4K',
+      results:'fldRTbvFixo9brFzM', spend:'fldXDNsxLK7u58dyn', impr:'fldY6X4DUVuzUq1PH', reach:'fldpam1vhLOjG2CPG', freq:'fldQgOmL2XR3HUpyc',
+      cpm:'fldn3ndcEZ5aYCy1s', ctr:'fldygB7Nwb56DLc50', clicks:'fldtR4qpA4rXF5mdw', quality:'fldF6YZUzLx5ad4UQ' } };
+const nowLocal = () => { const d = new Date(), p = n => String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); };
+// הטבלה יכולה להכיל כמה דוחות. שורות יומיות (תחילה = סוף) נכנסות כולן כפילוח יומי. אחרת נלקח הדוח המצטבר האחרון.
+function metaFromAirtable(records){
+  const F = AT.f, num = v => typeof v === 'number' ? v : parseFloat(v) || 0, txt = v => v == null ? '' : typeof v === 'object' ? (v.name || '') : String(v);
+  const rows = records.map(r => { const c = r.cellValuesByFieldId || r.fields || {}; return {
+    name: txt(c[F.name]).replace(/[‎‏]/g,'').trim(), adset: txt(c[F.adset]).replace(/[‎‏]/g,'').trim(),
+    start: txt(c[F.start]).slice(0,10), end: txt(c[F.end]).slice(0,10), delivery: txt(c[F.status]),
+    spend: num(c[F.spend]), results: num(c[F.results]), impr: num(c[F.impr]), reach: num(c[F.reach]), clicks: num(c[F.clicks]),
+    ctr: num(c[F.ctr]) * 100, cpm: num(c[F.cpm]), freq: num(c[F.freq]), quality: txt(c[F.quality]) || '-', engage: '-', conv: '-' }; })
+    .filter(r => r.name && r.start && r.end);
+  if (!rows.length) return null;
+  const daily = rows.every(r => r.start === r.end);
+  let pick;
+  if (daily) pick = rows.map(r => Object.assign(r, {day: r.start}));
+  else {
+    const latestEnd = rows.reduce((m,r) => r.end > m ? r.end : m, '');
+    const atEnd = rows.filter(r => r.end === latestEnd), earliest = atEnd.reduce((m,r) => r.start < m ? r.start : m, latestEnd);
+    const seen = new Set(); pick = atEnd.filter(r => r.start === earliest && !seen.has(r.name) && seen.add(r.name)).map(r => Object.assign(r, {day: ''}));
+  }
+  return { start: pick.reduce((m,r)=>r.start<m?r.start:m, pick[0].start), end: pick.reduce((m,r)=>r.end>m?r.end:m, ''),
+    file: 'Airtable', source: 'airtable', byDay: daily, ads: pick, syncedAt: nowLocal() };
+}
+const SYNC_ERR = {
+  server_not_connected: 'Airtable לא מחובר לחשבון. יש להוסיף אותו ב-claude.ai: הגדרות ← Connectors.',
+  needs_reauth: 'פג תוקף החיבור ל-Airtable. יש לחבר אותו מחדש ב-claude.ai: הגדרות ← Connectors.',
+  selection_required: 'יש יותר מחיבור Airtable אחד. יש לבחור אחד בחלון שנפתח ולנסות שוב.',
+  not_in_manifest: 'הגישה ל-Airtable לא אושרה לדף הזה. אפשר לאשר אותה בלחיצה נוספת על הכפתור.',
+  consent_required: 'הגישה ל-Airtable לא אושרה לדף הזה. אפשר לאשר אותה בלחיצה נוספת על הכפתור.',
+  blocked_by_policy: 'מדיניות הארגון חוסמת את Airtable בדף הזה.',
+  approval_required: 'מדיניות הארגון דורשת אישור לכל קריאה ל-Airtable, ובדף הזה אין אפשרות כזו.',
+  server_unavailable: 'Airtable לא זמין כרגע. כדאי לנסות שוב בעוד דקה.',
+  not_granted: 'הסנכרון זמין רק בדף המפורסם ב-claude.ai.', capability_disabled: 'הסנכרון זמין רק בדף המפורסם ב-claude.ai.'
+};
+const syncMsg = (t, cls) => { const m = $('syncMsg'); m.textContent = t; m.className = 'sync-msg' + (cls ? ' ' + cls : ''); };
+(async () => {
+  if (!window.claude || typeof window.claude.use !== 'function') return;   // קובץ מקומי: אין סנכרון
+  const [mcp, db] = await Promise.all([window.claude.use('mcp').catch(() => null), window.claude.use('db').catch(() => null)]);
+  const saved = db ? db.doc('sync/meta') : null;
+  if (saved) {
+    try {
+      const s = await saved.get();
+      const m = s.exists ? s.data().meta : null;
+      if (m && m.ads && m.ads.length && (m.end > DATA.meta.end || (m.end === DATA.meta.end && (m.syncedAt||'') > DATA.generated))) { applyMeta(JSON.parse(JSON.stringify(m))); render(); }
+    } catch (e) { /* בלי שמירה: מציגים את נתוני הבנייה */ }
+  }
+  if (!mcp) return;
+  $('syncBox').hidden = false;
+  if (DATA.meta.syncedAt) syncMsg('סנכרון אחרון: ' + DATA.meta.syncedAt.replace('T',' '));
+  const fetchAll = async () => {
+    let records = [], cursor, pages = 0;
+    do {
+      const input = { baseId: AT.baseId, tableId: AT.tableId, pageSize: 1000, fieldIds: Object.values(AT.f) };
+      if (cursor) input.cursor = cursor;
+      const res = await mcp.callTool(AT.server, AT.tool, input, { cache: false });
+      const p = res.payload || {};
+      records = records.concat(p.records || []);
+      cursor = p.nextCursor || p.cursor || null;
+    } while (cursor && ++pages < 20);
+    return records;
+  };
+  $('syncBtn').addEventListener('click', async () => {
+    const btn = $('syncBtn'); btn.disabled = true; $('syncLabel').textContent = 'מסנכרן…'; syncMsg('');
+    try {
+      let records;
+      try { records = await fetchAll(); }
+      catch (e) { if (e && e.retryable) { await new Promise(r => setTimeout(r, Math.min(e.retryAfterMs || 1500 + Math.random()*1500, 10000))); records = await fetchAll(); } else throw e; }
+      const meta = metaFromAirtable(records);
+      if (!meta) { syncMsg('בטבלה "דוחות מודעות" ב-Airtable לא נמצאו שורות עם שם מודעה ותאריכי דוח.', 'err'); return; }
+      const before = DATA.meta.end;
+      applyMeta(meta); render();
+      let savedOk = true;
+      if (saved) { try { await saved.set({ meta: meta, syncedAt: meta.syncedAt }); } catch (e) { savedOk = false; } }
+      syncMsg('סונכרן: ' + meta.ads.length + ' מודעות, נתונים עד ' + meta.end.split('-').reverse().join('.') + (meta.end > before ? ' (חדש)' : '') + (saved && !savedOk ? '. לא נשמר לפתיחה הבאה.' : ''), 'ok');
+    } catch (e) {
+      const code = e && e.code;
+      syncMsg(SYNC_ERR[code] || (code === 'tool_error' ? 'Airtable החזיר שגיאה: ' + (e.message || '') : 'הסנכרון נכשל' + (e && e.message ? ': ' + e.message : '.')), 'err');
+    } finally { btn.disabled = false; $('syncLabel').textContent = 'סנכרון מטא מ-Airtable'; }
+  });
+})();
 })();
 </script>
