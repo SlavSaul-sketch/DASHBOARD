@@ -117,13 +117,27 @@ $ledger = [ordered]@{}; $inCosts = $false
 foreach ($row in $ledgerLines) {
   $label = $row[0]
   if ($label -eq 'עלות ליד') { $inCosts = $true; continue }
-  if ($label -like 'יחס הכנסות*') { break }
+  # סוף שורות ההוצאה: השורה הראשונה שהיא מדד ולא הוצאה. כמה סמנים, כי שמות השורות בגיליון משתנים
+  if ($inCosts -and $label -match '^(יחס הכנסות|ROAS|רווח|עלות לקוח|מרווח|לידים|שיחות|משתתפי)') { break }
   if ($label -in 'מכירות', 'עלות קמפיין פייסבוק', 'עלות קמפיין גוגל', 'סהכ עלויות' -or ($inCosts -and $label)) {
     $vals = [ordered]@{}; foreach ($m in ($monthCols.Keys | Sort-Object)) { $vals[$m] = [math]::Round((Num $row[$monthCols[$m]]), 2) }
     $ledger[$label] = $vals
   }
 }
 
+# בדיקת מבנה ספר ההוצאות: סכום השורות שנאספו מול שורת "סהכ עלויות" בגיליון (שכוללת גם את "עלות ליד")
+$costLabels = @($ledger.Keys | Where-Object { $_ -notin 'מכירות', 'סהכ עלויות' })
+$ledgerOk = $true
+foreach ($m in ($monthCols.Keys | Sort-Object)) {
+  $sum = ($costLabels | ForEach-Object { $ledger[$_][$m] } | Measure-Object -Sum).Sum
+  $sheet = if ($ledger['סהכ עלויות']) { $ledger['סהכ עלויות'][$m] } else { 0 }
+  if ($sheet -gt 0 -and [math]::Abs($sum - $sheet) -gt [math]::Max(100, $sheet * 0.05)) {
+    $ledgerOk = $false
+    $warnings.Add("מבנה הטאב דוח חודשי השתנה: בחודש $m סכום שורות ההוצאה ($([math]::Round($sum))) לא תואם לשורה סהכ עלויות ($([math]::Round($sheet))). ההוצאות והרווח לא יוצגו עד לבדיקה.")
+    break
+  }
+}
+if (-not $ledgerOk) { foreach ($k in $costLabels) { $ledger.Remove($k) } }
 # ---------- דוח Meta: מ-Airtable (מועדף) או מ-CSV ----------
 $dayCol = $null
 if ($MetaJson) {

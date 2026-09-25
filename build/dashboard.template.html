@@ -269,8 +269,8 @@ const USD = 3, BE = 1.2, MONTHS_HE = ['ינואר','פברואר','מרץ','אפ
 const $ = id => document.getElementById(id);
 const fmt = (n, d=0) => (n==null||!isFinite(n)) ? '—' : Number(n).toLocaleString('en-US',{maximumFractionDigits:d,minimumFractionDigits:d});
 const ils = n => (n==null||!isFinite(n)) ? '—' : '<bdi>'+fmt(n)+' ₪</bdi>';
-const pct = (a,b,d=0) => b ? fmt(a/b*100,d)+'%' : '—';
-const ratio = (a,b,d=1) => b ? fmt(a/b,d) : '—';
+const pct = (a,b,d=0) => (a!=null && b) ? fmt(a/b*100,d)+'%' : '—';
+const ratio = (a,b,d=1) => (a!=null && b) ? fmt(a/b,d) : '—';
 const monthLabel = m => MONTHS_HE[+m.slice(5,7)-1] + ' ' + m.slice(2,4);
 const addDays = (iso, n) => { const d = new Date(Date.UTC(+iso.slice(0,4), +iso.slice(5,7)-1, +iso.slice(8,10) + n)); return d.toISOString().slice(0,10)+'T23:59'; };
 
@@ -404,8 +404,9 @@ function render(){
   const callsTotal = calls.deep + calls.partial + calls.organic;
   const revenue = B.reduce((s,p)=>s+p.amt,0), kits = B.reduce((s,p)=>s+p.kit,0);
   const costRows = Object.keys(DATA.ledger).filter(k => k !== 'מכירות' && k !== 'סהכ עלויות');
-  const costTotal = costRows.reduce((s,k)=>s+ledgerSum(k),0);
-  const profit = revenue - costTotal;
+  const noLedger = costRows.length === 0;   // הבנייה הסתירה את ספר ההוצאות כי המבנה שלו לא עבר בדיקה
+  const costTotal = noLedger ? null : costRows.reduce((s,k)=>s+ledgerSum(k),0);
+  const profit = noLedger ? null : revenue - costTotal;
 
   // שורת עדכון
   const today = DATA.generated.slice(0,10);
@@ -543,7 +544,7 @@ function render(){
   const used = new Set(CAT.flatMap(c=>c[1])); CAT.push(['מערכות וכלים', costRows.filter(k => !used.has(k))]);
   const catVal = CAT.map(([n, ks]) => [n, ks.reduce((s,k)=>s+ledgerSum(k),0), ks]);
   const media = catVal[0][1] + catVal[1][1];
-  $('costKpis').innerHTML = kpi('סה"כ הוצאות', ils(costTotal), pLabel) + kpi('פרסום', ils(media), pct(media, costTotal)+' מההוצאות') + kpi('עלות רכישת לקוחה כוללת', ils(B.length?costTotal/B.length:null), 'כל ההוצאות חלקי מספר הרוכשות') + kpi('עלות פרסום לרוכשת', ils(B.length?media/B.length:null), 'מטא + גוגל חלקי כל הרוכשות');
+  $('costKpis').innerHTML = kpi('סה"כ הוצאות', ils(costTotal), pLabel) + kpi('פרסום', ils(media), pct(media, costTotal)+' מההוצאות') + kpi('עלות רכישת לקוחה כוללת', ils(B.length&&!noLedger?costTotal/B.length:null), 'כל ההוצאות חלקי מספר הרוכשות') + kpi('עלות פרסום לרוכשת', ils(B.length&&!noLedger?media/B.length:null), 'מטא + גוגל חלקי כל הרוכשות');
   $('costTable').innerHTML = '<thead><tr><th>קטגוריה</th>'+pMonths().map(m=>'<th class="n">'+monthLabel(m)+'</th>').join('')+(pMonths().length>1?'<th class="n">סה"כ</th>':'')+'</tr></thead><tbody>'
     + catVal.map(([n, v, ks]) => '<tr><td>'+n+'</td>'+pMonths().map(m => '<td class="n">'+ils(ks.reduce((s,k)=>s+((DATA.ledger[k]||{})[m]||0),0))+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(v)+'</td>':'')+'</tr>'
       + (n==='מערכות וכלים' || n==='אנשי מקצוע' ? ks.filter(k=>ledgerSum(k)).map(k => '<tr class="sub"><td>'+k+'</td>'+pMonths().map(m=>'<td class="n">'+ils((DATA.ledger[k]||{})[m]||0)+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(ledgerSum(k))+'</td>':'')+'</tr>').join('') : '')).join('')
@@ -559,7 +560,7 @@ function render(){
 
   /* 7. רווח */
   const plM = months.map(m => { const rev = purchases.filter(p=>p.d.slice(0,7)===m).reduce((s,p)=>s+p.amt,0), cost = costRows.reduce((s,k)=>s+((DATA.ledger[k]||{})[m]||0),0); return {m, rev, cost, profit: rev-cost}; });
-  groupChart($('plChart'), plM);
+  if (noLedger) $('plChart').innerHTML = '<p class="hint">אין נתוני הוצאות להצגה. ראו את ההתראה בראש הדף.</p>'; else groupChart($('plChart'), plM);
   const metaGross = metaTot.spend != null ? metaTot.rev - metaTot.spend - metaTot.kit : null;
   $('plTable').innerHTML = '<div><span>הכנסות</span><b>'+ils(revenue)+'</b></div>'
     + catVal.map(([n,v]) => '<div><span>'+n+'</span><b class="neg"><bdi>−'+fmt(v)+' ₪</bdi></b></div>').join('')
@@ -672,6 +673,7 @@ const syncMsg = (t, cls) => { const m = $('syncMsg'); m.textContent = t; m.class
       const meta = metaFromAirtable(records);
       if (!meta) { syncMsg('בטבלה "דוחות מודעות" ב-Airtable לא נמצאו שורות עם שם מודעה ותאריכי דוח.', 'err'); return; }
       const before = DATA.meta.end;
+      if (meta.end < before) { syncMsg('Airtable מעודכן רק עד ' + meta.end.split('-').reverse().join('.') + ', והדאשבורד כבר מציג נתוני מטא עד ' + before.split('-').reverse().join('.') + '. הנתונים לא הוחלפו. כדאי לעדכן את הטבלה ב-Airtable.', 'err'); return; }
       applyMeta(meta); render();
       let savedOk = true;
       if (saved) { try { await saved.set({ meta: meta, syncedAt: meta.syncedAt }); } catch (e) { savedOk = false; } }
