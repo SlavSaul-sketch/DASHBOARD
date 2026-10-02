@@ -363,6 +363,18 @@ const pMonths = () => period === 'all' ? months : [period];
 let ads = [];
 function applyMeta(meta){ DATA.meta = meta; ads = meta.ads.map(a => Object.assign({}, a, {g: adGroup(a)})); }
 applyMeta(DATA.meta);
+// בנתונים יומיים: סיכום לפי מודעה בתוך התקופה שנבחרה. בנתונים מצטברים: שורה אחת לכל מודעה, כמו שהגיעה
+function adsView(){
+  if (!DATA.meta.byDay) return ads.slice();
+  const by = new Map();
+  ads.filter(a => inP(a.day)).sort((x,y) => x.day < y.day ? -1 : 1).forEach(a => {
+    const o = by.get(a.name) || {name:a.name, adset:a.adset, g:a.g, spend:0, results:0, impr:0, clicks:0, reach:null, freq:null};
+    o.spend += a.spend; o.results += a.results; o.impr += a.impr; o.clicks += a.clicks;
+    o.delivery = a.delivery; o.quality = a.quality;   // הערך מהיום האחרון
+    by.set(a.name, o);
+  });
+  return [...by.values()].map(o => Object.assign(o, {ctr: o.impr ? o.clicks/o.impr*100 : null, cpm: o.impr ? o.spend/o.impr*1000 : null}));
+}
 function metaSpendILS(g){ // null כשאין פילוח חודשי בדוח
   const rows = ads.filter(a => !g || a.g === g);
   if (DATA.meta.byDay) return rows.filter(a => inP(a.day)).reduce((s,a)=>s+a.spend,0) * USD;
@@ -483,7 +495,7 @@ function render(){
   adHtml += '<tr class="grp"><td colspan="13">מטא</td></tr>';
   S.filter(s => G[s.g].ch==='meta').forEach(s => {
     adHtml += row(s, '<i class="sw" style="background:var(--s-meta)"></i>'+G[s.g].name);
-    if (s.g === 'old' && period === 'all') ads.filter(a=>a.g==='old').forEach(a => adHtml += '<tr class="sub"><td>'+(/סיילוגרף/.test(a.name)?'סרטון סיילוגרף':/קרוסלה/.test(a.name)?'סרטון קרוסלה (באד סט הוותיק)':a.name)+' · '+(a.delivery==='active'?'פעילה':'כבויה')+'</td><td class="n">'+ils(a.spend*USD)+'</td><td colspan="11" class="dim">הוצאה בלבד. ה-UTM לא מפריד בין שתי המודעות באד סט.</td></tr>');
+    if (s.g === 'old' && (period === 'all' || DATA.meta.byDay)) adsView().filter(a=>a.g==='old').forEach(a => adHtml += '<tr class="sub"><td>'+(/סיילוגרף/.test(a.name)?'סרטון סיילוגרף':/קרוסלה/.test(a.name)?'סרטון קרוסלה (באד סט הוותיק)':a.name)+' · '+(a.delivery==='active'?'פעילה':'כבויה')+'</td><td class="n">'+ils(a.spend*USD)+'</td><td colspan="11" class="dim">הוצאה בלבד. ה-UTM לא מפריד בין שתי המודעות באד סט.</td></tr>');
   });
   adHtml += row(metaTot, 'סה"כ מטא', 'tot');
   adHtml += '<tr class="grp"><td colspan="13">גוגל, אורגני ושיתופי פעולה</td></tr>';
@@ -500,10 +512,10 @@ function render(){
   const metaHdr = '<thead><tr><th>מודעה</th><th>קבוצה</th><th>סטטוס</th><th class="n">הוצאה $</th><th class="n">תוצאות</th><th class="n">עלות לתוצאה $</th><th class="n">CTR</th><th class="n">CPM $</th><th class="n">תדירות</th><th>דירוג איכות</th></tr></thead><tbody>';
   const qual = q => !q || q === '-' ? '<span class="dim">אין דירוג</span>' : /Below/.test(q) ? '<span class="pill p-bad">'+(/10/.test(q)?'נמוך מאוד':'מתחת לממוצע')+'</span>' : /Above/.test(q) ? '<span class="pill p-good">מעל הממוצע</span>' : '<span class="pill p-mute">ממוצע</span>';
   const shortName = a => /סיילוגרף/.test(a.name) ? 'סרטון סיילוגרף (ותיק)' : /קרוסלה/.test(a.name) ? 'סרטון קרוסלה (ותיק)' : a.name;
-  const mt = ads.slice().sort((a,b)=>b.spend-a.spend);
+  const mt = adsView().sort((a,b)=>b.spend-a.spend);
   $('metaTable').innerHTML = metaHdr + mt.map(a => '<tr><td>'+shortName(a)+'</td><td class="dim">'+G[a.g].name+'</td><td>'+(a.delivery==='active'?'<span class="pill p-good">פעילה</span>':'<span class="pill p-mute">כבויה</span>')+'</td><td class="n">'+fmt(a.spend,0)+'</td><td class="n">'+fmt(a.results)+'</td><td class="n">'+(a.results?fmt(a.spend/a.results,2):'—')+'</td><td class="n">'+fmt(a.ctr,2)+'%</td><td class="n">'+fmt(a.cpm,2)+'</td><td class="n">'+fmt(a.freq,2)+'</td><td>'+qual(a.quality)+'</td></tr>').join('')
     + '<tr class="tot"><td>סה"כ</td><td></td><td></td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.spend,0))+'</td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.results,0))+'</td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.spend,0)/Math.max(1,mt.reduce((s,a)=>s+a.results,0)),2)+'</td><td colspan="4"></td></tr></tbody>';
-  $('metaHint').textContent = 'נתוני Ads Manager לכל טווח הדוח ('+DATA.meta.start+' עד '+DATA.meta.end+'), לא מושפעים מבחירת התקופה. "תוצאות" = אירוע NEWEBINAR בפיקסל.';
+  $('metaHint').textContent = (DATA.meta.byDay ? 'נתוני מטא יומיים, מסוכמים לתקופה שנבחרה. טווח הגעה ותדירות לא ניתנים לסיכום בין ימים ולכן לא מוצגים. ' : 'נתוני Ads Manager לכל טווח הדוח ('+DATA.meta.start+' עד '+DATA.meta.end+'), לא מושפעים מבחירת התקופה. ') + '"תוצאות" = אירוע NEWEBINAR בפיקסל.';
 
   /* 3. וובינר */
   $('webKpis').innerHTML = kpi('נרשמות לוובינר', fmt(R.length), 'כל ההרשמות בתקופה, כולל חוזרות')
