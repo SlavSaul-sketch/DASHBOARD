@@ -141,9 +141,9 @@ if (-not $ledgerOk) { foreach ($k in $costLabels) { $ledger.Remove($k) } }
 # ---------- דוח Meta: מ-Airtable (מועדף) או מ-CSV ----------
 $dayCol = $null
 if ($MetaJson) {
-  $F = @{ name = 'fldSdJnT6GnXzn3Pb'; start = 'fldxMbBfWxMRtzlja'; end = 'fldg3FFYMPtYeyWfP'; adset = 'fld6kXgRnvl1z0gAX'; status = 'fldPKy2nyreN1Rj4K'
-    results = 'fldRTbvFixo9brFzM'; spend = 'fldXDNsxLK7u58dyn'; impr = 'fldY6X4DUVuzUq1PH'; reach = 'fldpam1vhLOjG2CPG'; freq = 'fldQgOmL2XR3HUpyc'
-    cpm = 'fldn3ndcEZ5aYCy1s'; ctr = 'fldygB7Nwb56DLc50'; clicks = 'fldtR4qpA4rXF5mdw'; quality = 'fldF6YZUzLx5ad4UQ' }
+  $F = @{ name = 'fldqkmfH5IXnmSt1f'; start = 'fldvEwY7D786KSdBT'; end = 'fldS9TU7efsKYZJOf'; adset = 'fldPjTosVS4WLOkwL'; status = 'fldQs84D9gXDgedRr'
+    results = 'fldv11SdVV2Qlydxj'; spend = 'fld9mr7c1VPDO0MWJ'; impr = 'fldFcKQsbVZ4105NQ'; reach = 'fldLOLeaeUZIbHhJf'; freq = 'fldU6c1L4eJl16ZOK'
+    cpm = 'fldulJ0QrHVkPlNLW'; ctr = 'fldGJoSTlBXKSCGHD'; clicks = 'fldnmBDVmVWOK1GQH'; quality = 'fldJukf5W88R43iy8' }
   $payload = [IO.File]::ReadAllText($MetaJson, [Text.Encoding]::UTF8) | ConvertFrom-Json
   function Cell($c, $k) { $v = $c.($F[$k]); if ($v -eq $null) { '' } elseif ($v.PSObject.Properties['name']) { "$($v.name)" } else { "$v" } }
   $rows = foreach ($r in $payload.records) {

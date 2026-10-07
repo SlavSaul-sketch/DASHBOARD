@@ -612,10 +612,10 @@ $('periods').addEventListener('click', e => { const b = e.target.closest('button
 render();
 
 /* ---------- סנכרון מטא מ-Airtable (קריאה בלבד) ---------- */
-const AT = { server:'Airtable', tool:'list_records_for_table', baseId:'appD8WL3JrOJGZ4ZQ', tableId:'tblCU3r1J5qCYKJYG',
-  f:{ name:'fldSdJnT6GnXzn3Pb', start:'fldxMbBfWxMRtzlja', end:'fldg3FFYMPtYeyWfP', adset:'fld6kXgRnvl1z0gAX', status:'fldPKy2nyreN1Rj4K',
-      results:'fldRTbvFixo9brFzM', spend:'fldXDNsxLK7u58dyn', impr:'fldY6X4DUVuzUq1PH', reach:'fldpam1vhLOjG2CPG', freq:'fldQgOmL2XR3HUpyc',
-      cpm:'fldn3ndcEZ5aYCy1s', ctr:'fldygB7Nwb56DLc50', clicks:'fldtR4qpA4rXF5mdw', quality:'fldF6YZUzLx5ad4UQ' } };
+const AT = { server:'Airtable', tool:'list_records_for_table', baseId:'appD8WL3JrOJGZ4ZQ', tableId:'tblYgeImVmLmfa2Ha',
+  f:{ name:'fldqkmfH5IXnmSt1f', start:'fldvEwY7D786KSdBT', end:'fldS9TU7efsKYZJOf', adset:'fldPjTosVS4WLOkwL', status:'fldQs84D9gXDgedRr',
+      results:'fldv11SdVV2Qlydxj', spend:'fld9mr7c1VPDO0MWJ', impr:'fldFcKQsbVZ4105NQ', reach:'fldLOLeaeUZIbHhJf', freq:'fldU6c1L4eJl16ZOK',
+      cpm:'fldulJ0QrHVkPlNLW', ctr:'fldGJoSTlBXKSCGHD', clicks:'fldnmBDVmVWOK1GQH', quality:'fldJukf5W88R43iy8' } };
 const nowLocal = () => { const d = new Date(), p = n => String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); };
 // הטבלה יכולה להכיל כמה דוחות. שורות יומיות (תחילה = סוף) נכנסות כולן כפילוח יומי. אחרת נלקח הדוח המצטבר האחרון.
 function metaFromAirtable(records){
@@ -683,7 +683,7 @@ const syncMsg = (t, cls) => { const m = $('syncMsg'); m.textContent = t; m.class
       try { records = await fetchAll(); }
       catch (e) { if (e && e.retryable) { await new Promise(r => setTimeout(r, Math.min(e.retryAfterMs || 1500 + Math.random()*1500, 10000))); records = await fetchAll(); } else throw e; }
       const meta = metaFromAirtable(records);
-      if (!meta) { syncMsg('בטבלה "דוחות מודעות" ב-Airtable לא נמצאו שורות עם שם מודעה ותאריכי דוח.', 'err'); return; }
+      if (!meta) { syncMsg('בטבלה "נתוני מטא" ב-Airtable לא נמצאו שורות עם שם מודעה ותאריכי דוח.', 'err'); return; }
       const before = DATA.meta.end;
       if (meta.end < before) { syncMsg('Airtable מעודכן רק עד ' + meta.end.split('-').reverse().join('.') + ', והדאשבורד כבר מציג נתוני מטא עד ' + before.split('-').reverse().join('.') + '. הנתונים לא הוחלפו. כדאי לעדכן את הטבלה ב-Airtable.', 'err'); return; }
       applyMeta(meta); render();

@@ -24,7 +24,7 @@ try {
   & (Join-Path $PSScriptRoot 'xlsx2csv.ps1') -Xlsx (Join-Path $tmp 'organic.xlsx') -OutDir (Join-Path $tmp 'csv') -Prefix organic | Out-Null
   # 3. בחירת מקור מטא: העדכני מבין Airtable ודוח ה-CSV, לפי תאריך סוף הדוח
   if (-not $MetaCsv) { $MetaCsv = Get-ChildItem (Join-Path $env:USERPROFILE 'Downloads') -Filter '*Ads*.csv' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName }
-  $airEnd = ''; if ($MetaJson -and (Test-Path $MetaJson)) { $airEnd = "$(([IO.File]::ReadAllText($MetaJson, [Text.Encoding]::UTF8) | ConvertFrom-Json).records | ForEach-Object { "$($_.cellValuesByFieldId.fldg3FFYMPtYeyWfP)" } | Sort-Object | Select-Object -Last 1)"; if ($airEnd.Length -gt 10) { $airEnd = $airEnd.Substring(0, 10) } }
+  $airEnd = ''; if ($MetaJson -and (Test-Path $MetaJson)) { $airEnd = "$(([IO.File]::ReadAllText($MetaJson, [Text.Encoding]::UTF8) | ConvertFrom-Json).records | ForEach-Object { "$($_.cellValuesByFieldId.fldS9TU7efsKYZJOf)" } | Sort-Object | Select-Object -Last 1)"; if ($airEnd.Length -gt 10) { $airEnd = $airEnd.Substring(0, 10) } }
   $csvEnd = ''; if ($MetaCsv -and (Test-Path $MetaCsv)) { $csvEnd = "$(([IO.File]::ReadAllLines($MetaCsv, [Text.Encoding]::UTF8) | Select-Object -Skip 1 -First 1 | ConvertFrom-Csv -Header 's','e').e)" }
   if (-not $airEnd -and -not $csvEnd) { throw 'אין נתוני מטא: לא התקבלה תשובת Airtable ולא נמצא דוח CSV בתיקיית ההורדות.' }
   $build = @{ CsvDir = (Join-Path $tmp 'csv') }
