@@ -143,6 +143,22 @@ td .nm{display:flex;align-items:center;gap:8px}
 .tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12px;padding:7px 10px;border-radius:6px;z-index:20;max-width:260px;line-height:1.45;direction:rtl}
 .tip[hidden]{display:none}
 
+/* מגמות */
+.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.ph h3{margin:0}
+.mtog{display:inline-flex;gap:4px;flex-wrap:wrap}
+.mtog button{font:inherit;font-size:12.5px;color:var(--ink-2);background:var(--surface);border:1px solid var(--line-2);border-radius:999px;padding:3px 11px;cursor:pointer}
+.mtog button:hover{border-color:var(--ink-3)}
+.mtog button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.mtog button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lc svg{width:100%;height:auto;display:block;overflow:visible}
+.lc text{font-family:var(--f-ui);font-size:11px;fill:var(--ink-3)}
+.lc .grid{stroke:var(--line);stroke-dasharray:3 3}
+.lc .axis{stroke:var(--line-2)}
+.lc .hit{fill:transparent;cursor:default}
+.chg{font-variant-numeric:tabular-nums;direction:ltr;display:inline-block}
+.chg.up{color:var(--bad)} .chg.down{color:var(--good)}
+
 .hbar{display:grid;gap:8px}
 .hrow{display:grid;grid-template-columns:minmax(90px,150px) 1fr auto;gap:10px;align-items:center;font-size:13px}
 .hrow .tr{height:10px;background:var(--mute-bg);border-radius:4px;overflow:hidden}
@@ -191,7 +207,7 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
       </div>
     </div>
     <nav class="nav" aria-label="מקטעים">
-      <a href="#leads">לידים</a><a href="#ads">ביצועי מודעות</a><a href="#webinar">וובינר</a><a href="#calls">שיחות</a><a href="#sales">רכישות</a><a href="#costs">הוצאות</a><a href="#profit">רווח</a>
+      <a href="#leads">לידים</a><a href="#ads">ביצועי מודעות</a><a href="#trend">מגמות</a><a href="#webinar">וובינר</a><a href="#calls">שיחות</a><a href="#sales">רכישות</a><a href="#costs">הוצאות</a><a href="#profit">רווח</a>
     </nav>
   </header>
 
@@ -215,14 +231,19 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
       <div class="panel"><h3>איכות המודעות במטא</h3><div class="tw"><table id="metaTable"></table></div><p class="hint" id="metaHint"></p></div>
     </section>
 
+    <section id="trend">
+      <div class="sh"><span class="ix">3</span><h2>מגמות מודעות</h2><p>מה בירידה ומה משתפר, לפי נתוני מטא היומיים. שבוע = ראשון עד שבת. לא מושפע מבחירת התקופה.</p></div>
+      <div id="trendBody"></div>
+    </section>
+
     <section id="webinar">
-      <div class="sh"><span class="ix">3</span><h2>משתתפות בוובינר</h2><p>עומק: 35 דקות ומעלה בשידור. חלקי: פחות מ-35 דקות. האחוזים מתוך כל הנרשמות בתקופה.</p></div>
+      <div class="sh"><span class="ix">4</span><h2>משתתפות בוובינר</h2><p>עומק: 35 דקות ומעלה בשידור. חלקי: פחות מ-35 דקות. האחוזים מתוך כל הנרשמות בתקופה.</p></div>
       <div class="kpis" id="webKpis"></div>
       <div class="panel"><h3>לפי חודש</h3><div class="tw"><table id="webTable"></table></div></div>
     </section>
 
     <section id="calls">
-      <div class="sh"><span class="ix">4</span><h2>שיחות מכירה</h2><p>שיחה = סימון 1 בעמודת "שיחה" בטאבים הגיע 35, הגיע פחות מ 35 ומסר 1.</p></div>
+      <div class="sh"><span class="ix">5</span><h2>שיחות מכירה</h2><p>שיחה = סימון 1 בעמודת "שיחה" בטאבים הגיע 35, הגיע פחות מ 35 ומסר 1.</p></div>
       <div class="kpis" id="callKpis"></div>
       <div class="grid2">
         <div class="panel"><h3>כיסוי שיחות לפי קהל</h3><div class="hbar" id="callCover"></div><p class="hint">כמה מתוך כל קהל קיבלו שיחה.</p></div>
@@ -231,7 +252,7 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
     </section>
 
     <section id="sales">
-      <div class="sh"><span class="ix">5</span><h2>רכישות</h2><p>מקור: טאב רכשו. הכנסה = עמודת סכום, כפי שנרשמה בפועל.</p></div>
+      <div class="sh"><span class="ix">6</span><h2>רכישות</h2><p>מקור: טאב רכשו. הכנסה = עמודת סכום, כפי שנרשמה בפועל.</p></div>
       <div class="kpis" id="saleKpis"></div>
       <div class="grid2">
         <div class="panel"><h3>הכנסות לפי מקור</h3><div class="hbar" id="saleSrc"></div><p class="hint" id="attrHint"></p></div>
@@ -240,7 +261,7 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
     </section>
 
     <section id="costs">
-      <div class="sh"><span class="ix">6</span><h2>הוצאות</h2><p>מקור: טאב דוח חודשי (ספר ההוצאות). החודש הנוכחי חלקי.</p></div>
+      <div class="sh"><span class="ix">7</span><h2>הוצאות</h2><p>מקור: טאב דוח חודשי (ספר ההוצאות). החודש הנוכחי חלקי.</p></div>
       <div class="kpis" id="costKpis"></div>
       <div class="grid2">
         <div class="panel"><h3>פירוט הוצאות</h3><div class="tw"><table id="costTable"></table></div></div>
@@ -249,7 +270,7 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
     </section>
 
     <section id="profit">
-      <div class="sh"><span class="ix">7</span><h2>רווח</h2><p>הכנסות מטאב רכשו פחות כל ההוצאות מספר ההוצאות. לפני שעות העבודה שלך.</p></div>
+      <div class="sh"><span class="ix">8</span><h2>רווח</h2><p>הכנסות מטאב רכשו פחות כל ההוצאות מספר ההוצאות. לפני שעות העבודה שלך.</p></div>
       <div class="grid2">
         <div class="panel"><h3>הכנסות מול הוצאות לפי חודש</h3><div class="chart" id="plChart"></div></div>
         <div class="panel"><h3>דוח רווח והפסד לתקופה</h3><div class="pl" id="plTable"></div></div>
@@ -383,6 +404,106 @@ function metaSpendILS(g){ // null כשאין פילוח חודשי בדוח
 }
 const ledgerSum = (label) => { const r = DATA.ledger[label]; return r ? pMonths().reduce((s,m)=>s+(r[m]||0),0) : 0; };
 
+/* ---------- מגמות מודעות (רק בנתונים יומיים) ---------- */
+const TG = ['old','newcar','yaheli','car'];
+const TSTY = { old:{c:'var(--s-org)', d:''}, newcar:{c:'var(--accent)', d:''}, yaheli:{c:'var(--ink-3)', d:'6 4'}, car:{c:'var(--line-2)', d:'2 3'} };
+const TMET = {
+  cpl:   {name:'עלות להרשמה', f: c => c.results ? c.spend*USD/c.results : null, fmt: v => fmt(v,1)+' ₪', ax: v => fmt(v,0)+' ₪', bad:'up', min:5},
+  ctr:   {name:'CTR',         f: c => c.impr ? c.clicks/c.impr*100 : null,      fmt: v => fmt(v,2)+'%',  ax: v => fmt(v,1)+'%', bad:'down'},
+  cpm:   {name:'CPM',         f: c => c.impr ? c.spend*USD/c.impr*1000 : null,  fmt: v => fmt(v,0)+' ₪', bad:'up'},
+  spend: {name:'הוצאה',       f: c => c.spend ? c.spend*USD : null,            fmt: v => fmt(v,0)+' ₪'},
+  results:{name:'הרשמות',     f: c => c.results || null,                         fmt: v => fmt(v,0)}
+};
+let tMetric = 'cpl';
+try { const s = localStorage.getItem('slavso-tmetric'); if (s && TMET[s]) tMetric = s; } catch(e){}
+const isoAdd = (iso, n) => new Date(Date.UTC(+iso.slice(0,4), +iso.slice(5,7)-1, +iso.slice(8,10) + n)).toISOString().slice(0,10);
+const weekOf = iso => { const dow = new Date(Date.UTC(+iso.slice(0,4), +iso.slice(5,7)-1, +iso.slice(8,10))).getUTCDay(); return isoAdd(iso, -dow); };
+const dm = iso => +iso.slice(8,10)+'.'+ +iso.slice(5,7);
+const cellOf = rows => rows.reduce((c,a) => { c.spend+=a.spend; c.results+=a.results; c.impr+=a.impr; c.clicks+=a.clicks; return c; }, {spend:0, results:0, impr:0, clicks:0});
+
+function trendInfo(){
+  if (!DATA.meta.byDay || !ads.length) return null;
+  const end = DATA.meta.end, rows = ads.filter(a => a.day);
+  const lastWeek = weekOf(end), partial = isoAdd(lastWeek, 6) > end;
+  const weeks = [...new Set(rows.map(a => weekOf(a.day)))].sort();
+  const full = weeks.filter(w => !(partial && w === lastWeek));
+  const byGW = (g, w) => cellOf(rows.filter(a => (g === 'all' || a.g === g) && weekOf(a.day) === w));
+  const groups = TG.filter(g => rows.some(a => a.g === g));
+  // השוואת 28 ימים מול 28 הימים שלפניהם
+  const aFrom = isoAdd(end, -27), bFrom = isoAdd(end, -55), bTo = isoAdd(end, -28), recent = isoAdd(end, -6);
+  const cmp = groups.map(g => {
+    const r = rows.filter(a => a.g === g), A = cellOf(r.filter(a => a.day >= aFrom)), B = cellOf(r.filter(a => a.day >= bFrom && a.day <= bTo));
+    const active = r.some(a => a.day >= recent && a.spend > 0);
+    const ch = k => { const x = TMET[k].f(A), y = TMET[k].f(B); return x != null && y ? (x - y) / y * 100 : null; };
+    const enough = A.results >= 15 && B.results >= 15;
+    const c = ch('cpl');
+    const state = !active ? 'off' : !enough || c == null ? 'small' : c > 20 ? 'down' : c < -10 ? 'up' : 'flat';
+    return { g, A, B, active, enough, cpl: c, ctr: ch('ctr'), cpm: ch('cpm'), state };
+  });
+  const alerts = cmp.filter(x => x.state === 'down').map(x => 'מגמה: '+G[x.g].name+' בירידה. העלות להרשמה עלתה ב-'+fmt(x.cpl)+'% ב-4 השבועות האחרונים ('+fmt(TMET.cpl.f(x.A),1)+' ₪ מול '+fmt(TMET.cpl.f(x.B),1)+' ₪)'
+    + (x.ctr != null && x.ctr < -10 ? ', CTR ירד ב-'+fmt(-x.ctr)+'%' : '') + (x.cpm != null && x.cpm > 10 ? ', CPM עלה ב-'+fmt(x.cpm)+'%' : '') + '. פירוט במקטע מגמות מודעות.');
+  return { end, weeks, full, partial, lastWeek, groups, byGW, cmp, alerts, aFrom, bFrom, bTo };
+}
+
+function lineChart(T, key){
+  const M = TMET[key], ws = T.full, n = ws.length;
+  if (n < 2) return '<p class="hint">צריך לפחות שני שבועות מלאים כדי להציג מגמה.</p>';
+  const W = 720, H = 250, pl = 18, pr = 52, pt = 14, pb = 30;
+  // בשבוע עם פחות מ-5 הרשמות, עלות להרשמה היא מספר מקרי. הנקודה לא מוצגת
+  const ser = T.groups.map(g => ({ g, v: ws.map(w => { const c = T.byGW(g, w); return M.min && c.results < M.min ? null : M.f(c); }) }));
+  const all = ser.flatMap(s => s.v).filter(v => v != null);
+  const max = niceMax(Math.max(...all, 0)), y = v => pt + (1 - v / max) * (H - pt - pb);
+  const x = i => W - pr - (n === 1 ? 0 : i * (W - pl - pr) / (n - 1));   // מימין לשמאל, כמו שאר הגרפים
+  let s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+M.name+' לפי שבוע וקבוצת מודעות">';
+  [0, .5, 1].forEach(f => { const yy = y(max*f); s += '<line class="'+(f?'grid':'axis')+'" x1="'+pl+'" x2="'+(W-pr)+'" y1="'+yy+'" y2="'+yy+'"/><text x="'+(W-pr+6)+'" y="'+(yy+4)+'">'+(M.ax||M.fmt)(max*f)+'</text>'; });
+  const step = Math.ceil(n / 8);
+  ws.forEach((w, i) => { if ((n - 1 - i) % step === 0) s += '<text x="'+x(i)+'" y="'+(H-8)+'" text-anchor="middle">'+dm(w)+'</text>'; });
+  ser.forEach(sr => {
+    const st = TSTY[sr.g]; let d = '', pen = false;
+    sr.v.forEach((v, i) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true; });
+    s += '<path d="'+d+'" fill="none" stroke="'+st.c+'" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round"'+(st.d?' stroke-dasharray="'+st.d+'"':'')+'/>';
+    sr.v.forEach((v, i) => { if (v == null) return; const tipTxt = '<b>'+G[sr.g].name+'</b><br>שבוע '+dm(ws[i])+'–'+dm(isoAdd(ws[i],6))+'<br>'+M.name+': '+M.fmt(v);
+      s += '<circle cx="'+x(i)+'" cy="'+y(v)+'" r="2.6" fill="'+st.c+'"/><circle class="hit" cx="'+x(i)+'" cy="'+y(v)+'" r="9" data-tip="'+tipTxt.replace(/"/g,'&quot;')+'"/>'; });
+  });
+  return s + '</svg>';
+}
+
+function renderTrend(T){
+  const el = $('trendBody');
+  if (!T) { el.innerHTML = '<div class="panel"><p class="hint" style="margin:0">המגמות זמינות רק כשנתוני מטא מגיעים כשורה לכל מודעה לכל יום (מ-Airtable). הנתונים הנוכחיים מצטברים.</p></div>'; return; }
+  const chg = (v, bad) => v == null ? '<span class="dim">—</span>' : '<span class="chg '+(Math.abs(v) < 5 || !bad ? '' : (bad === 'up') === (v > 0) ? 'up' : 'down')+'">'+(v > 0 ? '+' : '')+fmt(v)+'%</span>';
+  const pill = { down:'<span class="pill p-bad">בירידה</span>', up:'<span class="pill p-good">משתפרת</span>', flat:'<span class="pill p-mute">יציבה</span>', small:'<span class="pill p-mute">מעט נתונים</span>', off:'<span class="pill p-mute">כבויה</span>' };
+  let h = '<div class="panel"><h3>4 השבועות האחרונים מול 4 שלפניהם</h3><div class="tw"><table><thead><tr><th>קבוצה</th><th>מצב</th><th class="n">עלות להרשמה עכשיו</th><th class="n">לפני</th><th class="n">שינוי</th><th class="n">שינוי CTR</th><th class="n">שינוי CPM</th><th class="n">הרשמות עכשיו</th><th class="n">הוצאה עכשיו</th></tr></thead><tbody>'
+    + T.cmp.map(x => '<tr><td><div class="nm"><i class="sw" style="background:'+TSTY[x.g].c+'"></i>'+G[x.g].name+'</div></td><td>'+pill[x.state]+'</td>'
+      + '<td class="n">'+(TMET.cpl.f(x.A)==null?'—':ils(TMET.cpl.f(x.A)))+'</td><td class="n">'+(TMET.cpl.f(x.B)==null?'—':ils(TMET.cpl.f(x.B)))+'</td>'
+      + '<td class="n">'+chg(x.cpl,'up')+'</td><td class="n">'+chg(x.ctr,'down')+'</td><td class="n">'+chg(x.cpm,'up')+'</td>'
+      + '<td class="n">'+fmt(x.A.results)+'</td><td class="n">'+ils(x.A.spend*USD)+'</td></tr>').join('')
+    + '</tbody></table></div><p class="hint">עכשיו = '+dm(T.aFrom)+' עד '+dm(T.end)+'. לפני = '+dm(T.bFrom)+' עד '+dm(T.bTo)+'. בירידה = עלות להרשמה עלתה ביותר מ-20%. משתפרת = ירדה ביותר מ-10%. נבדק רק כשיש לפחות 15 הרשמות בכל חלון. CTR שיורד ו-CPM שעולה יחד הם סימן שהקהל מתעייף מהמודעה. הרשמות לפי הפיקסל של מטא.</p></div>';
+  h += '<div class="panel"><div class="ph"><h3>לפי שבוע</h3><div class="mtog" id="tMet" role="group" aria-label="מדד">'
+    + Object.keys(TMET).map(k => '<button type="button" data-k="'+k+'" aria-pressed="'+(k===tMetric)+'">'+TMET[k].name+'</button>').join('') + '</div></div>'
+    + '<div class="lc">'+lineChart(T, tMetric)+'</div>'
+    + '<div class="legend">'+T.groups.map(g => '<span><svg width="22" height="8" aria-hidden="true"><line x1="1" x2="21" y1="4" y2="4" stroke="'+TSTY[g].c+'" stroke-width="2.5"'+(TSTY[g].d?' stroke-dasharray="'+TSTY[g].d+'"':'')+'/></svg>'+G[g].name+'</span>').join('')+'</div>';
+  const M = TMET[tMetric], wRows = T.weeks.slice().reverse().slice(0, 10);
+  h += '<div class="tw" style="margin-top:12px"><table><thead><tr><th>שבוע</th>'+T.groups.map(g => '<th class="n">'+G[g].name+'</th>').join('')+'<th class="n">כל מטא</th></tr></thead><tbody>'
+    + wRows.map(w => '<tr><td>'+dm(w)+'–'+dm(isoAdd(w,6))+(T.partial && w===T.lastWeek ? ' <span class="dim">(חלקי)</span>' : '')+'</td>'
+      + T.groups.concat(['all']).map(g => { const v = M.f(T.byGW(g, w)); return '<td class="n">'+(v==null?'<span class="dim">—</span>':M.fmt(v))+'</td>'; }).join('')+'</tr>').join('')
+    + '</tbody></table></div><p class="hint">10 השבועות האחרונים. שבוע חלקי לא נכנס לגרף. בגרף של עלות להרשמה לא מוצג שבוע עם פחות מ-5 הרשמות לקבוצה, כי המספר שלו מקרי.</p></div>';
+  // תוצאה עסקית לפי חודש
+  const ms = months.filter(m => m >= DATA.meta.start.slice(0,7) && m <= T.end.slice(0,7));
+  const mCell = (g, m) => { const sp = ads.filter(a => a.day && a.day.slice(0,7) === m && (g === 'all' ? META_G.includes(a.g) : a.g === g)).reduce((s,a)=>s+a.spend,0) * USD;
+    const bb = purchases.filter(p => p.d.slice(0,7) === m && (g === 'all' ? G[p.g] && G[p.g].ch === 'meta' : p.g === g)); const rev = bb.reduce((s,p)=>s+p.amt,0);
+    return { sp, n: bb.length, rev, roas: sp ? rev / sp : null }; };
+  const mTd = c => { if (!c.sp && !c.n) return '<td class="n"><span class="dim">—</span></td>';
+    const tipTxt = 'הוצאה '+fmt(c.sp)+' ₪<br>'+c.n+' רוכשות · '+fmt(c.rev)+' ₪';
+    return '<td class="n" data-tip="'+tipTxt+'"><b style="font-weight:600'+(c.roas!=null&&c.roas<BE?';color:var(--bad)':'')+'">'+(c.roas==null?'—':fmt(c.roas,2))+'</b><br><span class="dim" style="font-size:11.5px">'+c.n+' רוכשות · '+ils(c.rev)+'</span></td>'; };
+  h += '<div class="panel"><h3>תוצאה עסקית לפי חודש: ROAS, רוכשות והכנסות</h3><div class="tw"><table><thead><tr><th>קבוצה</th>'+ms.map(m => '<th class="n">'+monthLabel(m)+(m===genMonth?' <span class="dim">(חלקי)</span>':'')+'</th>').join('')+'</tr></thead><tbody>'
+    + T.groups.map(g => '<tr><td><div class="nm"><i class="sw" style="background:'+TSTY[g].c+'"></i>'+G[g].name+'</div></td>'+ms.map(m => mTd(mCell(g, m))).join('')+'</tr>').join('')
+    + '<tr class="tot"><td>כל מטא</td>'+ms.map(m => mTd(mCell('all', m))).join('')+'</tr></tbody></table></div>'
+    + '<p class="hint">רוכשות לפי שיוך Last Touch, כמו בטבלת הביצועים. ROAS באדום = מתחת לסף הרווחיות 1.2. בחודש אחד לרוב יש פחות מ-5 רוכשות לקבוצה, וזה מדגם קטן מכדי להחליט. המספרים כאן מראים כיוון, ואת ההחלטה עדיף לבסס על כמה חודשים יחד.</p></div>';
+  el.innerHTML = h;
+  $('tMet').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; tMetric = b.dataset.k; try { localStorage.setItem('slavso-tmetric', tMetric); } catch(err){} renderTrend(T); });
+}
+
 /* ---------- טולטיפ ---------- */
 const tip = $('tip');
 document.addEventListener('mousemove', e => { const t = e.target.closest('[data-tip]'); if (!t) { tip.hidden = true; return; } tip.innerHTML = t.dataset.tip; tip.hidden = false;
@@ -425,7 +546,9 @@ function render(){
   $('fresh').innerHTML = '<span>עודכן: <b>'+DATA.generated.replace('T',' ')+'</b></span><span>תקופה: <b>'+pLabel+'</b></span><span>דוח מטא: <b>'+DATA.meta.start+' עד '+DATA.meta.end+'</b>'+(DATA.meta.syncedAt?' · סונכרן מ-Airtable '+DATA.meta.syncedAt.replace('T',' '):DATA.meta.source==='airtable'?' · מ-Airtable':'')+'</span>';
   const alerts = (DATA.warnings||[]).slice();
   const lag = (new Date(today) - new Date(DATA.meta.end)) / 864e5;
-  if (lag > 2) alerts.push('דוח מטא מעודכן עד '+DATA.meta.end+' ('+Math.round(lag)+' ימים). נתוני ההוצאה והמודעות לא כוללים את הימים האחרונים. כדי לרענן: לעדכן את הטבלה ב-Airtable וללחוץ על "סנכרון מטא מ-Airtable".');
+  if (lag > (DATA.meta.byDay ? 5 : 2)) alerts.push('דוח מטא מעודכן עד '+DATA.meta.end+' ('+Math.round(lag)+' ימים). נתוני ההוצאה והמודעות לא כוללים את הימים האחרונים. '+(DATA.meta.byDay ? 'תרחיש Make מעדכן את Airtable בראשון וברביעי ב-05:30. אם הוא לא רץ, כדאי לבדוק אותו ב-Make.' : 'כדי לרענן: לעדכן את הטבלה ב-Airtable וללחוץ על "סנכרון מטא מ-Airtable".'));
+  const TR = trendInfo();
+  if (TR) alerts.push(...TR.alerts);
   $('alerts').innerHTML = alerts.map(a => '<div class="alert">'+a+'</div>').join('');
 
   // משפך
@@ -517,7 +640,10 @@ function render(){
     + '<tr class="tot"><td>סה"כ</td><td></td><td></td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.spend,0))+'</td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.results,0))+'</td><td class="n">'+fmt(mt.reduce((s,a)=>s+a.spend,0)/Math.max(1,mt.reduce((s,a)=>s+a.results,0)),2)+'</td><td colspan="4"></td></tr></tbody>';
   $('metaHint').textContent = (DATA.meta.byDay ? 'נתוני מטא יומיים, מסוכמים לתקופה שנבחרה. טווח הגעה ותדירות לא ניתנים לסיכום בין ימים ולכן לא מוצגים. ' : 'נתוני Ads Manager לכל טווח הדוח ('+DATA.meta.start+' עד '+DATA.meta.end+'), לא מושפעים מבחירת התקופה. ') + '"תוצאות" = אירוע NEWEBINAR בפיקסל.';
 
-  /* 3. וובינר */
+  /* 3. מגמות */
+  renderTrend(TR);
+
+  /* 4. וובינר */
   $('webKpis').innerHTML = kpi('נרשמות לוובינר', fmt(R.length), 'כל ההרשמות בתקופה, כולל חוזרות')
     + kpi('משתתפות עומק', fmt(Dp.length), pct(Dp.length, R.length,1)+' מהנרשמות')
     + kpi('משתתפות חלקית', fmt(Pp.length), pct(Pp.length, R.length,1)+' מהנרשמות')
