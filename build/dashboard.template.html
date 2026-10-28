@@ -52,6 +52,11 @@ bdi{unicode-bidi:isolate}
 .periods button:hover{color:var(--band-ink);border-color:var(--band-ink-2)}
 .periods button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#0F1212;font-weight:600}
 .periods button:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.range{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap;flex-basis:100%;justify-content:flex-end;font-size:13px;color:var(--band-ink-2)}
+.range input{font:inherit;font-size:13px;color:var(--band-ink);background:transparent;border:1px solid var(--band-line);border-radius:8px;padding:3px 8px;color-scheme:dark}
+.range input:focus-visible,.range button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.range button{font:inherit;font-size:13px;background:var(--accent);color:#0F1212;border:0;border-radius:999px;padding:4px 14px;cursor:pointer;font-weight:600}
+.range-err{color:#F2A49D;font-size:12px}
 .sync{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .sync-btn{font:inherit;font-size:13px;display:inline-flex;align-items:center;gap:7px;background:transparent;color:var(--band-ink);border:1px solid var(--accent);border-radius:999px;padding:4px 12px;cursor:pointer}
 .sync-btn:hover{background:var(--accent);color:#0F1212}
@@ -201,6 +206,12 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
         <div class="brand-sub">לוח בקרה: קמפיינים, וובינר ומכירות</div>
       </div>
       <div class="periods" id="periods" role="group" aria-label="תקופה"></div>
+      <form class="range" id="rangeBox" hidden>
+        <label for="rangeFrom">מתאריך</label><input type="date" id="rangeFrom" required>
+        <label for="rangeTo">עד</label><input type="date" id="rangeTo" required>
+        <button type="submit" id="rangeGo">הצגה</button>
+        <span class="range-err" id="rangeErr" role="alert"></span>
+      </form>
       <div class="sync" id="syncBox" hidden>
         <button type="button" id="syncBtn" class="sync-btn"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 0 1-9.9 3.3M2.5 8a5.5 5.5 0 0 1 9.9-3.3M12.6 1.8v3h-3M3.4 14.2v-3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="syncLabel">רענון נתונים</span></button>
         <span class="sync-msg" id="syncMsg" role="status" aria-live="polite"></span>
@@ -264,7 +275,7 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
       <div class="sh"><span class="ix">7</span><h2>הוצאות</h2><p>מקור: טאב דוח חודשי (ספר ההוצאות). החודש הנוכחי חלקי.</p></div>
       <div class="kpis" id="costKpis"></div>
       <div class="grid2">
-        <div class="panel"><h3>פירוט הוצאות</h3><div class="tw"><table id="costTable"></table></div></div>
+        <div class="panel"><h3>פירוט הוצאות</h3><div class="tw"><table id="costTable"></table></div><p class="hint" id="costHint"></p></div>
         <div class="panel"><h3>בדיקת התאמה</h3><div id="costCheck" class="note"></div></div>
       </div>
     </section>
@@ -369,9 +380,18 @@ const attributePurchase = p => {
 
 /* ---------- תקופות ---------- */
 let genMonth = '', months = [];
-let period = 'all';
-const inP = d => d && d.slice(0,10) >= DATA.from && (period === 'all' || d.slice(0,7) === period);
-const pMonths = () => period === 'all' ? months : [period];
+let period = 'all';                  // 'all' | 'YYYY-MM' | 'range'
+let range = { from: '', to: '' };    // תאריכים כולל, בפורמט YYYY-MM-DD. בשימוש כש-period === 'range'
+const monthEnd = m => new Date(Date.UTC(+m.slice(0,4), +m.slice(5,7), 0)).toISOString().slice(0,10);
+const pBounds = () => period === 'all' ? [DATA.from, '9999-12-31'] : period === 'range' ? [range.from, range.to] : [period + '-01', monthEnd(period)];
+const inP = d => { if (!d) return false; const x = d.slice(0,10), [a, b] = pBounds(); return x >= DATA.from && x >= a && x <= b; };
+const pMonths = () => { const [a, b] = pBounds(); return months.filter(m => m >= a.slice(0,7) && m <= b.slice(0,7)); };
+const inMonthView = m => period === 'all' || pMonths().includes(m);
+// ספר ההוצאות חודשי. חודש שנכנס לתקופה רק בחלקו נספר יחסית למספר הימים שבתוכה (1 = כל החודש)
+const dayCount = (x, y) => (Date.parse(y) - Date.parse(x)) / 864e5 + 1;
+const monthShare = m => { const [a, b] = pBounds(), s = m + '-01', e = monthEnd(m), f = a > s ? a : s, t = b < e ? b : e; return f > t ? 0 : dayCount(f, t) / dayCount(s, e); };
+const ledgerAt = (k, m) => ((DATA.ledger[k] || {})[m] || 0) * monthShare(m);
+const dmyShort = iso => +iso.slice(8,10) + '.' + +iso.slice(5,7) + '.' + iso.slice(2,4);
 
 /* ---------- הוצאות מטא ---------- */
 let ads = [];
@@ -387,11 +407,15 @@ function loadData(){
   purchases = DATA.purchases.map(attributePurchase);
   genMonth = DATA.generated.slice(0,7);
   months = []; { let y = +DATA.from.slice(0,4), m = +DATA.from.slice(5,7); for (;;) { const k = y+'-'+String(m).padStart(2,'0'); if (k > genMonth) break; months.push(k); if (++m > 12) { m = 1; y++; } } }
-  if (period !== 'all' && !months.includes(period)) period = 'all';
+  if (period !== 'all' && period !== 'range' && !months.includes(period)) period = 'all';
   applyMeta(DATA.meta);
 }
 loadData();
-try { const s = localStorage.getItem('slavso-period'); if (s && (s==='all' || months.includes(s))) period = s; } catch(e){}
+try {
+  const s = localStorage.getItem('slavso-period'), m = s && s.match(/^range:(\d{4}-\d{2}-\d{2}):(\d{4}-\d{2}-\d{2})$/);
+  if (m && m[1] <= m[2]) { period = 'range'; range = { from: m[1], to: m[2] }; }
+  else if (s && (s === 'all' || months.includes(s))) period = s;
+} catch(e){}
 // בנתונים יומיים: סיכום לפי מודעה בתוך התקופה שנבחרה. בנתונים מצטברים: שורה אחת לכל מודעה, כמו שהגיעה
 function adsView(){
   if (!DATA.meta.byDay) return ads.slice();
@@ -410,7 +434,7 @@ function metaSpendILS(g){ // null כשאין פילוח חודשי בדוח
   if (period === 'all') return rows.reduce((s,a)=>s+a.spend,0) * USD;
   return null;
 }
-const ledgerSum = (label) => { const r = DATA.ledger[label]; return r ? pMonths().reduce((s,m)=>s+(r[m]||0),0) : 0; };
+const ledgerSum = label => pMonths().reduce((s, m) => s + ledgerAt(label, m), 0);
 
 /* ---------- מגמות מודעות (רק בנתונים יומיים) ---------- */
 const TG = ['old','newcar','yaheli','car'];
@@ -529,7 +553,7 @@ const kpi = (label, val, sub, sw) => '<div class="kpi"><span>'+(sw?'<i class="sw
 /* ---------- רינדור ---------- */
 function render(){
   document.querySelectorAll('#periods button').forEach(b => b.setAttribute('aria-pressed', b.dataset.p === period));
-  const pLabel = period === 'all' ? 'מ-'+DATA.from.split('-').reverse().join('.') : monthLabel(period);
+  const pLabel = period === 'all' ? 'מ-'+DATA.from.split('-').reverse().join('.') : period === 'range' ? dmyShort(range.from)+' עד '+dmyShort(range.to) : monthLabel(period);
 
   // נתוני התקופה
   const R = regs.filter(r => inP(r.d));
@@ -658,7 +682,7 @@ function render(){
     + kpi('סה"כ השתתפו', fmt(att), pct(att, R.length,1)+' מהנרשמות');
   $('webTable').innerHTML = '<thead><tr><th>חודש</th><th class="n">נרשמות</th><th class="n">עומק</th><th class="n">% עומק</th><th class="n">חלקי</th><th class="n">% חלקי</th><th class="n">סה"כ השתתפו</th><th class="n">% השתתפות</th><th class="n">רכישות</th><th class="n">רכישות ממשתתפות עומק</th></tr></thead><tbody>'
     + months.map(m => { const r = regs.filter(x=>x.d.slice(0,7)===m).length, d = deep.filter(x=>x.d.slice(0,7)===m).length, p = partial.filter(x=>x.d.slice(0,7)===m).length, b = purchases.filter(x=>x.d.slice(0,7)===m).length;
-      return '<tr'+(period!=='all'&&period!==m?' class="sub"':'')+'><td>'+monthLabel(m)+(m===genMonth?' <span class="dim">(חלקי)</span>':'')+'</td><td class="n">'+fmt(r)+'</td><td class="n">'+fmt(d)+'</td><td class="n">'+pct(d,r,1)+'</td><td class="n">'+fmt(p)+'</td><td class="n">'+pct(p,r,1)+'</td><td class="n">'+fmt(d+p)+'</td><td class="n">'+pct(d+p,r,1)+'</td><td class="n">'+fmt(b)+'</td><td class="n">'+pct(b,d,1)+'</td></tr>'; }).join('') + '</tbody>';
+      return '<tr'+(!inMonthView(m)?' class="sub"':'')+'><td>'+monthLabel(m)+(m===genMonth?' <span class="dim">(חלקי)</span>':'')+'</td><td class="n">'+fmt(r)+'</td><td class="n">'+fmt(d)+'</td><td class="n">'+pct(d,r,1)+'</td><td class="n">'+fmt(p)+'</td><td class="n">'+pct(p,r,1)+'</td><td class="n">'+fmt(d+p)+'</td><td class="n">'+pct(d+p,r,1)+'</td><td class="n">'+fmt(b)+'</td><td class="n">'+pct(b,d,1)+'</td></tr>'; }).join('') + '</tbody>';
 
   /* 4. שיחות */
   const viaCall = B.filter(p=>/שיחה/.test(p.pay)).length, viaAuto = B.filter(p=>/אוטומט/.test(p.pay)).length;
@@ -691,15 +715,17 @@ function render(){
   const catVal = CAT.map(([n, ks]) => [n, ks.reduce((s,k)=>s+ledgerSum(k),0), ks]);
   const media = catVal[0][1] + catVal[1][1];
   $('costKpis').innerHTML = kpi('סה"כ הוצאות', ils(costTotal), pLabel) + kpi('פרסום', ils(media), pct(media, costTotal)+' מההוצאות') + kpi('עלות רכישת לקוחה כוללת', ils(B.length&&!noLedger?costTotal/B.length:null), 'כל ההוצאות חלקי מספר הרוכשות') + kpi('עלות פרסום לרוכשת', ils(B.length&&!noLedger?media/B.length:null), 'מטא + גוגל חלקי כל הרוכשות');
-  $('costTable').innerHTML = '<thead><tr><th>קטגוריה</th>'+pMonths().map(m=>'<th class="n">'+monthLabel(m)+'</th>').join('')+(pMonths().length>1?'<th class="n">סה"כ</th>':'')+'</tr></thead><tbody>'
-    + catVal.map(([n, v, ks]) => '<tr><td>'+n+'</td>'+pMonths().map(m => '<td class="n">'+ils(ks.reduce((s,k)=>s+((DATA.ledger[k]||{})[m]||0),0))+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(v)+'</td>':'')+'</tr>'
-      + (n==='מערכות וכלים' || n==='אנשי מקצוע' ? ks.filter(k=>ledgerSum(k)).map(k => '<tr class="sub"><td>'+k+'</td>'+pMonths().map(m=>'<td class="n">'+ils((DATA.ledger[k]||{})[m]||0)+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(ledgerSum(k))+'</td>':'')+'</tr>').join('') : '')).join('')
-    + '<tr class="tot"><td>סה"כ</td>'+pMonths().map(m=>'<td class="n">'+ils(costRows.reduce((s,k)=>s+((DATA.ledger[k]||{})[m]||0),0))+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(costTotal)+'</td>':'')+'</tr></tbody>';
-  const sheetTot = ledgerSum('סהכ עלויות'), metaCsv = period==='all' ? ads.reduce((s,a)=>s+a.spend,0)*USD : null, metaLedger = ledgerSum('עלות קמפיין פייסבוק');
+  $('costTable').innerHTML = '<thead><tr><th>קטגוריה</th>'+pMonths().map(m=>'<th class="n">'+monthLabel(m)+(monthShare(m)<1?' <span class="dim">(יחסי)</span>':'')+'</th>').join('')+(pMonths().length>1?'<th class="n">סה"כ</th>':'')+'</tr></thead><tbody>'
+    + catVal.map(([n, v, ks]) => '<tr><td>'+n+'</td>'+pMonths().map(m => '<td class="n">'+ils(ks.reduce((s,k)=>s+ledgerAt(k,m),0))+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(v)+'</td>':'')+'</tr>'
+      + (n==='מערכות וכלים' || n==='אנשי מקצוע' ? ks.filter(k=>ledgerSum(k)).map(k => '<tr class="sub"><td>'+k+'</td>'+pMonths().map(m=>'<td class="n">'+ils(ledgerAt(k,m))+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(ledgerSum(k))+'</td>':'')+'</tr>').join('') : '')).join('')
+    + '<tr class="tot"><td>סה"כ</td>'+pMonths().map(m=>'<td class="n">'+ils(costRows.reduce((s,k)=>s+ledgerAt(k,m),0))+'</td>').join('')+(pMonths().length>1?'<td class="n">'+ils(costTotal)+'</td>':'')+'</tr></tbody>';
+  const sheetTot = ledgerSum('סהכ עלויות'), metaCsv = metaSpendILS(null), metaLedger = ledgerSum('עלות קמפיין פייסבוק');
   let chk = '';
   if (Math.abs(sheetTot - costTotal) > 1) chk += '<p style="margin:0 0 8px"><b>סה"כ העלויות בגיליון גבוה ב-'+ils(sheetTot-costTotal)+'.</b> הנוסחה בשורה "סהכ עלויות" בטאב דוח חודשי כוללת גם את השורה "עלות ליד", שהיא מדד ולא הוצאה. כאן הסכום מחושב בלעדיה.</p>';
-  if (metaCsv != null) chk += '<p style="margin:0 0 8px">הוצאת מטא לפי דוח Ads Manager: <b>'+ils(metaCsv)+'</b> (לפי 1$ = 3 ₪). לפי ספר ההוצאות: <b>'+ils(metaLedger)+'</b>. הפער: '+ils(metaCsv-metaLedger)+'. טבלת המודעות משתמשת בדוח מטא. הרווח משתמש בספר ההוצאות.</p>';
-  else chk += '<p style="margin:0 0 8px">בחודש בודד הוצאת מטא מגיעה מספר ההוצאות בלבד. דוח מטא הנוכחי מצטבר ואין בו פילוח יומי.</p>';
+  const partM = pMonths().filter(m => monthShare(m) < 1);
+  $('costHint').textContent = partM.length ? 'חישוב יחסי: ' + partM.map(m => monthLabel(m) + ' (' + Math.round(monthShare(m) * 100) + '% מהחודש)').join(', ') + '. ספר ההוצאות רשום לפי חודש, ולכן ההוצאה של חודש שנכנס לתקופה רק בחלקו מחושבת לפי מספר הימים. זה אומדן, לא סכום מדויק. הוצאת מטא בטבלת המודעות מגיעה מנתוני מטא היומיים ומדויקת.' : '';
+  if (metaCsv != null) chk += '<p style="margin:0 0 8px">הוצאת מטא לפי נתוני מטא: <b>'+ils(metaCsv)+'</b> (לפי 1$ = 3 ₪). לפי ספר ההוצאות'+(partM.length?' (חישוב יחסי)':'')+': <b>'+ils(metaLedger)+'</b>. הפער: '+ils(metaCsv-metaLedger)+'. טבלת המודעות משתמשת בדוח מטא. הרווח משתמש בספר ההוצאות.</p>';
+  else chk += '<p style="margin:0 0 8px">בתקופה חלקית הוצאת מטא מגיעה מספר ההוצאות בלבד, כי נתוני המטא הנוכחיים מצטברים ואין בהם פילוח יומי.</p>';
   const ledgerSales = ledgerSum('מכירות');
   chk += '<p style="margin:0">הכנסות לפי טאב רכשו: <b>'+ils(revenue)+'</b>. שורת "מכירות" בדוח החודשי: <b>'+ils(ledgerSales)+'</b>.'+(Math.abs(ledgerSales-revenue)>1?' הפער: '+ils(revenue-ledgerSales)+'. בדרך כלל זה אומר שהדוח החודשי עוד לא עודכן ברכישות האחרונות.':' תואם.')+'</p>';
   $('costCheck').innerHTML = chk;
@@ -710,7 +736,7 @@ function render(){
   const metaGross = metaTot.spend != null ? metaTot.rev - metaTot.spend - metaTot.kit : null;
   $('plTable').innerHTML = '<div><span>הכנסות</span><b>'+ils(revenue)+'</b></div>'
     + catVal.map(([n,v]) => '<div><span>'+n+'</span><b class="neg"><bdi>−'+fmt(v)+' ₪</bdi></b></div>').join('')
-    + '<div class="t"><span>רווח נקי'+(period===genMonth||period==='all'?' <span class="dim" style="font-weight:400;font-size:12px">(כולל חודש נוכחי חלקי)</span>':'')+'</span><b'+(profit<0?' class="neg"':'')+'>'+ils(profit)+'</b></div>'
+    + '<div class="t"><span>רווח נקי'+(pMonths().includes(genMonth)?' <span class="dim" style="font-weight:400;font-size:12px">(כולל חודש נוכחי חלקי)</span>':'')+'</span><b'+(profit<0?' class="neg"':'')+'>'+ils(profit)+'</b></div>'
     + '<div><span>שיעור רווח</span><b>'+pct(profit, revenue)+'</b></div>'
     + '<div><span>יחס הכנסות להוצאות</span><b>'+ratio(revenue, costTotal, 2)+'</b></div>'
     + (metaGross!=null ? '<div><span>רווח גולמי ממטא אחרי מדיה וערכות</span><b>'+ils(metaGross)+'</b></div>' : '');
@@ -725,7 +751,7 @@ function stackChart(el, data, keys){
   const max = niceMax(Math.max(...data.map(d => keys.reduce((s,k)=>s+d[k],0))));
   el.innerHTML = '<div class="bars">'+gridLines(max, v=>fmt(v))+data.map(d => { const tot = keys.reduce((s,k)=>s+d[k],0);
     const tipTxt = '<b>'+monthLabel(d.m)+'</b><br>'+keys.map(k => CH[k].name+': '+fmt(d[k])).join('<br>')+'<br>סה"כ: '+fmt(tot);
-    return '<div class="col" data-tip="'+tipTxt.replace(/"/g,'&quot;')+'" style="'+(period!=='all'&&period!==d.m?'opacity:.35':'')+'">'
+    return '<div class="col" data-tip="'+tipTxt.replace(/"/g,'&quot;')+'" style="'+(!inMonthView(d.m)?'opacity:.35':'')+'">'
       + keys.map(k => d[k] ? '<div class="seg" style="height:calc('+(d[k]/max*100)+'% - 2px);background:'+CH[k].c+'"></div>' : '').join('')
       + '<div class="top" style="bottom:calc('+(tot/max*100)+'% + 4px)">'+fmt(tot)+'</div></div>'; }).join('')+'</div>'
     + '<div class="xl">'+data.map(d => '<span>'+monthLabel(d.m)+(d.m===genMonth?'*':'')+'</span>').join('')+'</div>'
@@ -735,15 +761,39 @@ function groupChart(el, data){
   const max = niceMax(Math.max(...data.map(d => Math.max(d.rev, d.cost))));
   el.innerHTML = '<div class="bars">'+gridLines(max, v=>fmt(v/1000,0)+'K')+data.map(d => {
     const tipTxt = '<b>'+monthLabel(d.m)+'</b><br>הכנסות: '+fmt(d.rev)+' ₪<br>הוצאות: '+fmt(d.cost)+' ₪<br>רווח: '+fmt(d.profit)+' ₪';
-    return '<div class="gcol" data-tip="'+tipTxt.replace(/"/g,'&quot;')+'" style="'+(period!=='all'&&period!==d.m?'opacity:.35':'')+'"><div class="b" style="height:'+(d.rev/max*100)+'%;background:var(--s-meta)"></div><div class="b" style="height:'+(d.cost/max*100)+'%;background:var(--s-org)"></div></div>'; }).join('')+'</div>'
+    return '<div class="gcol" data-tip="'+tipTxt.replace(/"/g,'&quot;')+'" style="'+(!inMonthView(d.m)?'opacity:.35':'')+'"><div class="b" style="height:'+(d.rev/max*100)+'%;background:var(--s-meta)"></div><div class="b" style="height:'+(d.cost/max*100)+'%;background:var(--s-org)"></div></div>'; }).join('')+'</div>'
     + '<div class="xl">'+data.map(d => '<span>'+monthLabel(d.m)+(d.m===genMonth?'*':'')+'<br><b style="color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums'+(d.profit<0?';color:var(--bad)':'')+'"><bdi>'+fmt(d.profit)+' ₪</bdi></b></span>').join('')+'</div>'
     + '<div class="legend"><span><i class="sw" style="background:var(--s-meta)"></i>הכנסות</span><span><i class="sw" style="background:var(--s-org)"></i>הוצאות</span><span class="dim">המספר מתחת לחודש: רווח. * חודש חלקי</span></div>';
 }
 
 /* ---------- בורר תקופה ---------- */
-const drawPeriods = () => { $('periods').innerHTML = '<button type="button" id="p-all" data-p="all">הכל</button>' + months.map(m => '<button type="button" id="p-'+m+'" data-p="'+m+'">'+monthLabel(m)+'</button>').join(''); };
+const drawPeriods = () => {
+  $('periods').innerHTML = '<button type="button" id="p-all" data-p="all">הכל</button>' + months.map(m => '<button type="button" id="p-'+m+'" data-p="'+m+'">'+monthLabel(m)+'</button>').join('')
+    + '<button type="button" id="p-range" data-p="range" aria-controls="rangeBox">' + (period === 'range' ? dmyShort(range.from) + '–' + dmyShort(range.to) : 'טווח תאריכים') + '</button>';
+  const today = DATA.generated.slice(0,10);
+  ['rangeFrom','rangeTo'].forEach(id => { $(id).min = DATA.from; $(id).max = today; });
+};
 drawPeriods();
-$('periods').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; period = b.dataset.p; try { localStorage.setItem('slavso-period', period); } catch(err){} render(); });
+const savePeriod = v => { try { localStorage.setItem('slavso-period', v); } catch(err){} };
+$('periods').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.p === 'range') {
+    const box = $('rangeBox'); box.hidden = !box.hidden;
+    if (!box.hidden) { $('rangeFrom').value = range.from || DATA.from; $('rangeTo').value = range.to || DATA.generated.slice(0,10); $('rangeErr').textContent = ''; $('rangeFrom').focus(); }
+    return;
+  }
+  $('rangeBox').hidden = true; period = b.dataset.p; savePeriod(period); drawPeriods(); render();
+});
+$('rangeBox').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = $('rangeFrom').value, t = $('rangeTo').value, min = DATA.from, max = DATA.generated.slice(0,10);
+  if (!f || !t) { $('rangeErr').textContent = 'יש לבחור שני תאריכים.'; return; }
+  if (f > t) { $('rangeErr').textContent = 'תאריך ההתחלה מאוחר מתאריך הסיום.'; return; }
+  if (t < min || f > max) { $('rangeErr').textContent = 'יש נתונים רק מ-' + dmyShort(min) + ' עד ' + dmyShort(max) + '.'; return; }
+  range = { from: f < min ? min : f, to: t > max ? max : t }; period = 'range';
+  savePeriod('range:' + range.from + ':' + range.to);
+  $('rangeBox').hidden = true; drawPeriods(); render();
+});
 render();
 
 /* ---------- רענון חי: הגיליונות מ-Google Drive ומטא מ-Airtable, בכל פתיחה של הדף (קריאה בלבד) ---------- */
