@@ -202,7 +202,7 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
       </div>
       <div class="periods" id="periods" role="group" aria-label="תקופה"></div>
       <div class="sync" id="syncBox" hidden>
-        <button type="button" id="syncBtn" class="sync-btn"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 0 1-9.9 3.3M2.5 8a5.5 5.5 0 0 1 9.9-3.3M12.6 1.8v3h-3M3.4 14.2v-3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="syncLabel">סנכרון מטא מ-Airtable</span></button>
+        <button type="button" id="syncBtn" class="sync-btn"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 0 1-9.9 3.3M2.5 8a5.5 5.5 0 0 1 9.9-3.3M12.6 1.8v3h-3M3.4 14.2v-3h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="syncLabel">רענון נתונים</span></button>
         <span class="sync-msg" id="syncMsg" role="status" aria-live="polite"></span>
       </div>
     </div>
@@ -282,6 +282,7 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
   <div class="tip" id="tip" hidden></div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const DATA = /*__DATA__*/null;
 (function(){
@@ -329,13 +330,9 @@ function adGroup(a){
 function partnerOf(s){ s = s||''; if (/HTZONE|הייטקזון/i.test(s)) return 'HTZONE'; if (/BUYME|ביימי/i.test(s)) return 'BUYME'; if (/בסלון/.test(s)) return 'בסלון'; if (/עמית/.test(s)) return 'תוכנית עמית'; return ''; }
 
 /* ---------- אינדקס אנשים ---------- */
-const regs = DATA.regs.map(r => Object.assign({}, r, {g: regGroup(r)}));
-const byKey = new Map();
+// כל המצב שנגזר מ-DATA מחושב ב-loadData, כדי שאפשר יהיה לחשב אותו מחדש אחרי רענון חי
+let regs = [], byKey = new Map(), orgByKey = new Map(), deep = [], partial = [], organicRows = [], purchases = [];
 const push = (m,k,v) => { if(!k) return; if(!m.has(k)) m.set(k,[]); m.get(k).push(v); };
-regs.forEach(r => { push(byKey, r.kp, r); push(byKey, r.km, r); });
-byKey.forEach(l => l.sort((a,b) => a.d < b.d ? -1 : 1));
-const orgByKey = new Map();
-DATA.organic.forEach(o => { push(orgByKey, o.kp, o); push(orgByKey, o.km, o); });
 const REAL = new Set(['old','newcar','car','yaheli','meta_other','google']);
 
 // Last Touch: ההרשמה האחרונה עם מקור אמיתי עד המועד. אחרת גיליון האורגניים. אחרת הרשמה ישירה = אורגני.
@@ -350,11 +347,9 @@ function lastTouch(kp, km, until){
   return null;
 }
 const attend = (rows, kind) => rows.map(x => { const t = lastTouch(x.kp, x.km, addDays(x.d,1)); return Object.assign({}, x, {kind, g: t ? t.g : 'unknown'}); });
-const deep = attend(DATA.deep, 'deep'), partial = attend(DATA.partial, 'partial');
-const organicRows = DATA.organic.map(o => Object.assign({}, o, {g: o.ch==='partner' ? 'partner' : o.ch==='google' ? 'google' : 'organic'}));
 
 // שיוך רכישות: שותף מפורש > מדרג 1 (Last Touch) > מדרג 2 (UTM בשורת הרכישה) > מדרג 3 (מקור הליד)
-const purchases = DATA.purchases.map(p => {
+const attributePurchase = p => {
   let g, tier, old = false, partner = partnerOf(p.src);
   if (partner) { g = 'partner'; tier = 'source'; }
   else {
@@ -370,20 +365,33 @@ const purchases = DATA.purchases.map(p => {
     }
   }
   return Object.assign({}, p, {g, tier, old, partner});
-});
+};
 
 /* ---------- תקופות ---------- */
-const genMonth = DATA.generated.slice(0,7);
-const months = []; { let y = +DATA.from.slice(0,4), m = +DATA.from.slice(5,7); for (;;) { const k = y+'-'+String(m).padStart(2,'0'); if (k > genMonth) break; months.push(k); if (++m > 12) { m = 1; y++; } } }
+let genMonth = '', months = [];
 let period = 'all';
-try { const s = localStorage.getItem('slavso-period'); if (s && (s==='all' || months.includes(s))) period = s; } catch(e){}
 const inP = d => d && d.slice(0,10) >= DATA.from && (period === 'all' || d.slice(0,7) === period);
 const pMonths = () => period === 'all' ? months : [period];
 
 /* ---------- הוצאות מטא ---------- */
 let ads = [];
 function applyMeta(meta){ DATA.meta = meta; ads = meta.ads.map(a => Object.assign({}, a, {g: adGroup(a)})); }
-applyMeta(DATA.meta);
+
+function loadData(){
+  regs = DATA.regs.map(r => Object.assign({}, r, {g: regGroup(r)}));
+  byKey = new Map(); regs.forEach(r => { push(byKey, r.kp, r); push(byKey, r.km, r); });
+  byKey.forEach(l => l.sort((a,b) => a.d < b.d ? -1 : 1));
+  orgByKey = new Map(); DATA.organic.forEach(o => { push(orgByKey, o.kp, o); push(orgByKey, o.km, o); });
+  deep = attend(DATA.deep, 'deep'); partial = attend(DATA.partial, 'partial');
+  organicRows = DATA.organic.map(o => Object.assign({}, o, {g: o.ch==='partner' ? 'partner' : o.ch==='google' ? 'google' : 'organic'}));
+  purchases = DATA.purchases.map(attributePurchase);
+  genMonth = DATA.generated.slice(0,7);
+  months = []; { let y = +DATA.from.slice(0,4), m = +DATA.from.slice(5,7); for (;;) { const k = y+'-'+String(m).padStart(2,'0'); if (k > genMonth) break; months.push(k); if (++m > 12) { m = 1; y++; } } }
+  if (period !== 'all' && !months.includes(period)) period = 'all';
+  applyMeta(DATA.meta);
+}
+loadData();
+try { const s = localStorage.getItem('slavso-period'); if (s && (s==='all' || months.includes(s))) period = s; } catch(e){}
 // בנתונים יומיים: סיכום לפי מודעה בתוך התקופה שנבחרה. בנתונים מצטברים: שורה אחת לכל מודעה, כמו שהגיעה
 function adsView(){
   if (!DATA.meta.byDay) return ads.slice();
@@ -707,7 +715,7 @@ function render(){
     + '<div><span>יחס הכנסות להוצאות</span><b>'+ratio(revenue, costTotal, 2)+'</b></div>'
     + (metaGross!=null ? '<div><span>רווח גולמי ממטא אחרי מדיה וערכות</span><b>'+ils(metaGross)+'</b></div>' : '');
 
-  $('foot').innerHTML = 'מקורות: גיליון "וובינר אוטומטי - קובץ לידים" (נרשמים, הגיע 35, הגיע פחות מ 35, רכשו, דוח חודשי), גיליון "[אוטומציה] קורס דיגיטלי Slav&So - ליד חדש" (מסר 1), ודוח Meta '+DATA.meta.file+'. הגיליונות נקראים בלבד ולא משתנים. פרטים מזהים (טלפון ומייל) הוחלפו במפתח מוצפן לפני הבנייה, ושמות לא נשמרים בדאשבורד.';
+  $('foot').innerHTML = 'מקורות: גיליון "וובינר אוטומטי - קובץ לידים" (נרשמים, הגיע 35, הגיע פחות מ 35, רכשו, דוח חודשי), גיליון "[אוטומציה] קורס דיגיטלי Slav&So - ליד חדש" (מסר 1), ונתוני מטא מ-'+DATA.meta.file+'. הדף מושך את הנתונים מחדש בכל פתיחה, קריאה בלבד. העיבוד קורה בדפדפן: טלפון ומייל מוחלפים במפתח מוצפן, ושמות ופרטים מזהים לא נשמרים בשום מקום.';
 }
 
 /* ---------- גרפים ---------- */
@@ -733,16 +741,22 @@ function groupChart(el, data){
 }
 
 /* ---------- בורר תקופה ---------- */
-$('periods').innerHTML = '<button type="button" id="p-all" data-p="all">הכל</button>' + months.map(m => '<button type="button" id="p-'+m+'" data-p="'+m+'">'+monthLabel(m)+'</button>').join('');
+const drawPeriods = () => { $('periods').innerHTML = '<button type="button" id="p-all" data-p="all">הכל</button>' + months.map(m => '<button type="button" id="p-'+m+'" data-p="'+m+'">'+monthLabel(m)+'</button>').join(''); };
+drawPeriods();
 $('periods').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; period = b.dataset.p; try { localStorage.setItem('slavso-period', period); } catch(err){} render(); });
 render();
 
-/* ---------- סנכרון מטא מ-Airtable (קריאה בלבד) ---------- */
+/* ---------- רענון חי: הגיליונות מ-Google Drive ומטא מ-Airtable, בכל פתיחה של הדף (קריאה בלבד) ---------- */
+// מקביל ל-build/build-data.ps1. כל שינוי בהגדרות נעשה בשני המקומות (SPEC.md סעיפים 3, 5-7, 9.1).
 const AT = { server:'Airtable', tool:'list_records_for_table', baseId:'appD8WL3JrOJGZ4ZQ', tableId:'tblYgeImVmLmfa2Ha',
   f:{ name:'fldqkmfH5IXnmSt1f', start:'fldvEwY7D786KSdBT', end:'fldS9TU7efsKYZJOf', adset:'fldPjTosVS4WLOkwL', status:'fldQs84D9gXDgedRr',
       results:'fldv11SdVV2Qlydxj', spend:'fld9mr7c1VPDO0MWJ', impr:'fldFcKQsbVZ4105NQ', reach:'fldLOLeaeUZIbHhJf', freq:'fldU6c1L4eJl16ZOK',
       cpm:'fldulJ0QrHVkPlNLW', ctr:'fldGJoSTlBXKSCGHD', clicks:'fldnmBDVmVWOK1GQH', quality:'fldJukf5W88R43iy8' } };
+const DRIVE = { server:'Google Drive', tool:'download_file_content', mime:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  webinar:'1vadmLUcpspLDOGJUh4ApcOSaXfghQg6rneJW2-hsayo', organic:'1EpWAi7O0fkPRzwQM2Xb2OZHWfo6YIp3x_tkOwb9u9ck' };
 const nowLocal = () => { const d = new Date(), p = n => String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); };
+const dmy = iso => iso.slice(0,10).split('-').reverse().join('.');
+
 // הטבלה יכולה להכיל כמה דוחות. שורות יומיות (תחילה = סוף) נכנסות כולן כפילוח יומי. אחרת נלקח הדוח המצטבר האחרון.
 function metaFromAirtable(records){
   const F = AT.f, num = v => typeof v === 'number' ? v : parseFloat(v) || 0, txt = v => v == null ? '' : typeof v === 'object' ? (v.name || '') : String(v);
@@ -764,63 +778,220 @@ function metaFromAirtable(records){
   return { start: pick.reduce((m,r)=>r.start<m?r.start:m, pick[0].start), end: pick.reduce((m,r)=>r.end>m?r.end:m, ''),
     file: 'Airtable', source: 'airtable', byDay: daily, ads: pick, syncedAt: nowLocal() };
 }
-const SYNC_ERR = {
-  server_not_connected: 'Airtable לא מחובר לחשבון. יש להוסיף אותו ב-claude.ai: הגדרות ← Connectors.',
-  needs_reauth: 'פג תוקף החיבור ל-Airtable. יש לחבר אותו מחדש ב-claude.ai: הגדרות ← Connectors.',
-  selection_required: 'יש יותר מחיבור Airtable אחד. יש לבחור אחד בחלון שנפתח ולנסות שוב.',
-  not_in_manifest: 'הגישה ל-Airtable לא אושרה לדף הזה. אפשר לאשר אותה בלחיצה נוספת על הכפתור.',
-  consent_required: 'הגישה ל-Airtable לא אושרה לדף הזה. אפשר לאשר אותה בלחיצה נוספת על הכפתור.',
-  blocked_by_policy: 'מדיניות הארגון חוסמת את Airtable בדף הזה.',
-  approval_required: 'מדיניות הארגון דורשת אישור לכל קריאה ל-Airtable, ובדף הזה אין אפשרות כזו.',
-  server_unavailable: 'Airtable לא זמין כרגע. כדאי לנסות שוב בעוד דקה.',
-  not_granted: 'הסנכרון זמין רק בדף המפורסם ב-claude.ai.', capability_disabled: 'הסנכרון זמין רק בדף המפורסם ב-claude.ai.'
-};
-const syncMsg = (t, cls) => { const m = $('syncMsg'); m.textContent = t; m.className = 'sync-msg' + (cls ? ' ' + cls : ''); };
-(async () => {
-  if (!window.claude || typeof window.claude.use !== 'function') return;   // קובץ מקומי: אין סנכרון
-  const [mcp, db] = await Promise.all([window.claude.use('mcp').catch(() => null), window.claude.use('db').catch(() => null)]);
-  const saved = db ? db.doc('sync/meta') : null;
-  if (saved) {
-    try {
-      const s = await saved.get();
-      const m = s.exists ? s.data().meta : null;
-      if (m && m.ads && m.ads.length && (m.end > DATA.meta.end || (m.end === DATA.meta.end && (m.syncedAt||'') > DATA.generated))) { applyMeta(JSON.parse(JSON.stringify(m))); render(); }
-    } catch (e) { /* בלי שמירה: מציגים את נתוני הבנייה */ }
+
+// --- SHA-256 (סינכרוני, בלי תלות ב-crypto.subtle). המפתח זהה לזה שהסקריפט המקומי מייצר
+const sha256 = (() => {
+  const K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  const enc = new TextEncoder(), W = new Uint32Array(64);
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  return str => {
+    const msg = enc.encode(str), l = msg.length, bl = ((l + 9 + 63) >> 6) << 6, buf = new Uint8Array(bl);
+    buf.set(msg); buf[l] = 0x80; const dv = new DataView(buf.buffer); dv.setUint32(bl - 4, l * 8); dv.setUint32(bl - 8, Math.floor(l / 0x20000000));
+    const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+    for (let o = 0; o < bl; o += 64) {
+      for (let i = 0; i < 16; i++) W[i] = dv.getUint32(o + i * 4);
+      for (let i = 16; i < 64; i++) { const a = W[i-15], b = W[i-2]; W[i] = (W[i-16] + (rotr(a,7) ^ rotr(a,18) ^ (a >>> 3)) + W[i-7] + (rotr(b,17) ^ rotr(b,19) ^ (b >>> 10))) >>> 0; }
+      let [a,b,c,d,e,f,g,h] = H;
+      for (let i = 0; i < 64; i++) {
+        const t1 = (h + (rotr(e,6) ^ rotr(e,11) ^ rotr(e,25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) >>> 0;
+        const t2 = ((rotr(a,2) ^ rotr(a,13) ^ rotr(a,22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+        h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+      }
+      H[0]+=a; H[1]+=b; H[2]+=c; H[3]+=d; H[4]+=e; H[5]+=f; H[6]+=g; H[7]+=h;
+    }
+    return [...H].map(x => x.toString(16).padStart(8,'0')).join('');
+  };
+})();
+const hash = s => s ? sha256('slavso|' + s).slice(0, 12) : '';
+
+// --- נרמול (כמו בסקריפט המקומי)
+function toIso(v){
+  v = v == null ? '' : String(v).trim(); if (!v) return null;
+  let y, mo, d, h = 0, mi = 0, m;
+  if (/^\d{4,5}(\.\d+)?$/.test(v)) { const dt = new Date(Math.round((parseFloat(v) - 25569) * 864e5)); y = dt.getUTCFullYear(); mo = dt.getUTCMonth()+1; d = dt.getUTCDate(); h = dt.getUTCHours(); mi = dt.getUTCMinutes(); }
+  else if ((m = v.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})(?:[ T]+(\d{1,2}):(\d{2}))?/))) {
+    let a = +m[1], b = +m[2]; y = +m[3]; if (y < 100) y += 2000; h = m[4] ? +m[4] : 0; mi = m[5] ? +m[5] : 0;
+    if (/[AP]M/i.test(v)) { const t = a; a = b; b = t; if (/PM/i.test(v) && h < 12) h += 12; }   // פורמט אמריקאי ישן
+    d = a; mo = b;
+    if (mo < 1 || mo > 12 || h > 23 || mi > 59 || new Date(Date.UTC(y, mo-1, d)).getUTCDate() !== d) return null;
+  } else return null;
+  const p = n => String(n).padStart(2,'0');
+  return y+'-'+p(mo)+'-'+p(d)+'T'+p(h)+':'+p(mi);
+}
+function phoneKey(v){
+  v = v == null ? '' : String(v).trim(); if (!v) return '';
+  if (/^[\d.]+E\+?\d+$/i.test(v)) v = Number(v).toFixed(0);
+  const d = v.replace(/\D/g,'').replace(/^972/,'').replace(/^0+/,'');
+  return (d.length < 8 || /^5?0{6,}$/.test(d)) ? '' : hash('p' + d);
+}
+function mailKey(v){ const m = (v == null ? '' : String(v)).trim().toLowerCase(); return /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(m) ? hash('m' + m) : ''; }
+const isTest = (r, fields) => fields.some(f => /טסט|test|yameliautomation/i.test(r[f] || ''));
+const numOf = v => { const x = String(v == null ? '' : v).replace(/[^\d.\-]/g,''); return (x === '' || x === '-' || x === '.') ? 0 : (parseFloat(x) || 0); };
+const called = v => /^1(\.0)?$/.test(String(v == null ? '' : v).trim());
+const tr = v => String(v == null ? '' : v).trim();
+
+// --- קריאת xlsx בדפדפן: רק שורות עם תוכן, כל שורה מערך לפי עמודה (A = 0)
+async function openWorkbook(b64){
+  const zip = await JSZip.loadAsync(b64, {base64: true});
+  const xml = async p => { const f = zip.file(p); return f ? new DOMParser().parseFromString(await f.async('string'), 'application/xml') : null; };
+  const ssx = await xml('xl/sharedStrings.xml'), ss = [];
+  if (ssx) for (const si of ssx.getElementsByTagName('si')) { let s = ''; for (const t of si.getElementsByTagName('t')) if (t.parentNode.nodeName !== 'rPh') s += t.textContent; ss.push(s); }
+  const wb = await xml('xl/workbook.xml'), rels = await xml('xl/_rels/workbook.xml.rels'), relMap = {}, sheets = {};
+  for (const r of rels.getElementsByTagName('Relationship')) relMap[r.getAttribute('Id')] = r.getAttribute('Target');
+  for (const s of wb.getElementsByTagName('sheet')) sheets[s.getAttribute('name').trim()] = 'xl/' + (relMap[s.getAttribute('r:id')] || '').replace(/^\/?xl\//, '');
+  return async (name, prefix) => {
+    const key = prefix ? Object.keys(sheets).find(k => k.startsWith(name)) : (sheets[name] ? name : null);
+    if (!key) throw new Error('הטאב "' + name + '" לא נמצא בגיליון. ייתכן ששמו שונה.');
+    const x = await xml(sheets[key]), out = [];
+    for (const row of x.getElementsByTagName('row')) {
+      const arr = []; let any = false;
+      for (const c of row.getElementsByTagName('c')) {
+        let col = 0; for (const ch of (c.getAttribute('r') || '').replace(/\d/g,'')) col = col * 26 + (ch.charCodeAt(0) - 64);
+        const t = c.getAttribute('t'), vn = c.getElementsByTagName('v')[0];
+        const v = t === 's' ? (vn ? ss[+vn.textContent] : '') : t === 'inlineStr' ? [...c.getElementsByTagName('t')].map(n => n.textContent).join('') : (vn ? vn.textContent : '');
+        if (col && v != null && v !== '') { arr[col - 1] = v; any = true; }
+      }
+      if (any) out.push(arr);
+    }
+    return out;
+  };
+}
+function toRecords(rows){
+  if (rows.length < 2) return [];
+  const seen = {}, names = [];
+  for (let i = 0; i < rows[0].length; i++) { let n = tr(rows[0][i]) || '_'; if (seen[n]) { seen[n]++; n = n + '_' + seen[n]; } else seen[n] = 1; names[i] = n; }
+  return rows.slice(1).map(r => { const o = {}; names.forEach((n, i) => { o[n] = r[i] == null ? '' : String(r[i]); }); return o; });
+}
+
+// --- בניית הנתונים מהגיליונות (מקביל ל-build-data.ps1)
+const MONTH_NUM = { 'ינואר':1,'פברואר':2,'מרץ':3,'אפריל':4,'מאי':5,'יוני':6,'יולי':7,'אוגוסט':8,'ספט':9,'ספטמבר':9,'אוק':10,'אוקטובר':10,'נוב':11,'נובמבר':11,'דצמ':12,'דצמבר':12 };
+const PARTNER_RX = /HTZONE|הייטקזון|היי טק זון|BUYME|ביימי|באיימי|בסלון|תוכנית עמית|תכנית עמית/i;
+const partnerName = s => /HTZONE|הייטקזון|היי טק זון/i.test(s) ? 'HTZONE' : /BUYME|ביימי|באיימי/i.test(s) ? 'BUYME' : /בסלון/.test(s) ? 'בסלון' : /תוכנית עמית|תכנית עמית/.test(s) ? 'תוכנית עמית' : '';
+async function buildFromSheets(web, org){
+  const from = DATA.from, fromIso = from + 'T00:00', attribIso = isoAdd(from, -90) + 'T00:00', warnings = [];
+  const regs2 = [];
+  for (const r of toRecords(await web('נרשמים'))) {
+    const d = toIso(r['תאריך הוספה']); if (!d || d < attribIso) continue;
+    if (isTest(r, ['שם פרטי','מייל','utm_source'])) continue;
+    regs2.push({ d, kp: phoneKey(r['טלפון']), km: mailKey(r['מייל']), s: tr(r.utm_source), c: tr(r.utm_content), t: tr(r.utm_term), a: tr(r.utm_ad) });
   }
+  const attendees = async tab => { const out = []; for (const r of toRecords(await web(tab))) { const d = toIso(r['תאריך']); if (!d || d < fromIso) continue; out.push({ d, kp: phoneKey(r['טלפון']), km: mailKey(r['מייל']), call: called(r['שיחה']) }); } return out; };
+  const deep2 = await attendees('הגיע 35'), partial2 = await attendees('הגיע פחות מ 35');
+  const organic2 = [];
+  for (const r of toRecords(await org('מסר 1'))) {
+    const d = toIso(r['תאריך הוספה']); if (!d || d < fromIso) continue;
+    if (isTest(r, ['שם מלא','מייל'])) continue;
+    const blob = [r['מקור הגעה'], r['סטטוס'], r['Form Name'], r.utm_source, r.utm_campaign].map(x => x || '').join(' ');
+    const ch = PARTNER_RX.test(blob) ? 'partner' : /gclid|gad_source|google/i.test(blob) ? 'google' : 'organic';
+    organic2.push({ d, kp: phoneKey(r['טלפון']), km: mailKey(r['מייל']), ch, p: partnerName(blob), src: tr(r['מקור הגעה']), call: called(r['שיחה']) });
+  }
+  const purch2 = [];
+  for (const r of toRecords(await web('רכשו'))) {
+    const d = toIso(r['תאריך']); if (!d || d < fromIso) continue;
+    const amt = numOf(r['סכום']); if (amt <= 0) continue;
+    purch2.push({ d, kp: phoneKey(r['טלפון']), km: mailKey(r['מייל']), src: tr(r['מקור הליד']), s: tr(r.utm_source), c: tr(r.utm_content), t: tr(r.utm_term),
+      prod: tr(r['מוצר שנרכש']), amt, kit: numOf(r['עלות משלוח + ערכת חומרים']), pay: tr(r['סליקה אוטומטית?']) });
+  }
+  // ספר ההוצאות (טאב דוח חודשי)
+  const L = await web('דוח חודשי', true), lab = r => tr(r[0]), nowM = nowLocal().slice(0,7);
+  const hdr = L.find(r => lab(r) === 'חודשי'), monthCols = {};
+  if (hdr) for (let i = 1; i < hdr.length; i++) { const m = tr(hdr[i]).match(/^(\S+)\s+(\d{2,4})$/); if (m && MONTH_NUM[m[1]]) { let y = +m[2]; if (y < 100) y += 2000; const k = y + '-' + String(MONTH_NUM[m[1]]).padStart(2,'0'); if (k >= from.slice(0,7) && k <= nowM) monthCols[k] = i; } }
+  const mKeys = Object.keys(monthCols).sort(), ledger2 = {};
+  let inCosts = false;
+  for (const row of L) {
+    const label = lab(row);
+    if (label === 'עלות ליד') { inCosts = true; continue; }
+    if (inCosts && /^(יחס הכנסות|ROAS|רווח|עלות לקוח|מרווח|לידים|שיחות|משתתפי)/i.test(label)) break;   // סוף שורות ההוצאה
+    if (['מכירות','עלות קמפיין פייסבוק','עלות קמפיין גוגל','סהכ עלויות'].includes(label) || (inCosts && label)) {
+      const vals = {}; mKeys.forEach(m => { vals[m] = Math.round(numOf(row[monthCols[m]]) * 100) / 100; }); ledger2[label] = vals;
+    }
+  }
+  const costLabels = Object.keys(ledger2).filter(k => k !== 'מכירות' && k !== 'סהכ עלויות');
+  for (const m of mKeys) {
+    const sum = costLabels.reduce((s,k) => s + (ledger2[k][m] || 0), 0), sheet = ledger2['סהכ עלויות'] ? ledger2['סהכ עלויות'][m] : 0;
+    if (sheet > 0 && Math.abs(sum - sheet) > Math.max(100, sheet * 0.05)) {
+      warnings.push('מבנה הטאב דוח חודשי השתנה: בחודש ' + m + ' סכום שורות ההוצאה (' + Math.round(sum) + ') לא תואם לשורה סהכ עלויות (' + Math.round(sheet) + '). ההוצאות והרווח לא יוצגו עד לבדיקה.');
+      costLabels.forEach(k => delete ledger2[k]); break;
+    }
+  }
+  if (!mKeys.length) warnings.push('לא נמצאו עמודות חודשים בטאב דוח חודשי. ההוצאות לא יוצגו.');
+  return { regs: regs2, deep: deep2, partial: partial2, organic: organic2, purchases: purch2, ledger: ledger2, warnings };
+}
+function metaWarnings(nd){
+  const w = [], m = nd.meta;
+  const lastP = nd.purchases.map(p => p.d).sort().pop();
+  if (lastP && (new Date(m.end) - new Date(lastP.slice(0,10))) / 864e5 > 30) w.push('הרכישה האחרונה בטאב רכשו היא מ-' + lastP.slice(0,10) + ', יותר מ-30 יום לפני סוף נתוני מטא. ייתכן שהנתונים חתוכים.');
+  const inRange = nd.regs.filter(r => r.d >= m.start && r.d.slice(0,10) <= m.end && /facebook|^fb$|^ig$|instagram/i.test(r.s)).length;
+  const res = m.ads.reduce((s,a) => s + a.results, 0);
+  if (res > 0 && (inRange * 2 < res || res * 2 < inRange)) w.push('פער חריג: ' + inRange + ' הרשמות ממטא בגיליון מול ' + res + ' תוצאות בנתוני מטא.');
+  const noKey = nd.purchases.filter(p => !p.kp && !p.km).length;
+  if (noKey) w.push(noKey + ' רכישות בלי טלפון או מייל תקינים. הן ישויכו לפי שדות הרכישה בלבד.');
+  return w;
+}
+function replaceData(nd){
+  Object.keys(DATA).forEach(k => delete DATA[k]); Object.assign(DATA, nd);
+  loadData(); drawPeriods(); render();
+}
+
+// --- הודעות שגיאה לפי קוד, לכל חיבור בנפרד
+const ERR_TXT = {
+  server_not_connected: s => s + ' לא מחובר לחשבון. יש להוסיף אותו ב-claude.ai: הגדרות ← Connectors.',
+  needs_reauth: s => 'פג תוקף החיבור ל-' + s + '. יש לחבר אותו מחדש ב-claude.ai: הגדרות ← Connectors.',
+  selection_required: s => 'יש יותר מחיבור ' + s + ' אחד. יש לבחור אחד בחלון שנפתח וללחוץ שוב על רענון.',
+  not_in_manifest: s => 'הגישה ל-' + s + ' לא אושרה לדף הזה. אפשר לאשר אותה בלחיצה על "רענון נתונים".',
+  consent_required: s => 'הגישה ל-' + s + ' לא אושרה לדף הזה. אפשר לאשר אותה בלחיצה על "רענון נתונים".',
+  blocked_by_policy: s => 'מדיניות הארגון חוסמת את ' + s + ' בדף הזה.',
+  approval_required: s => 'מדיניות הארגון דורשת אישור לכל קריאה ל-' + s + ', ובדף הזה אין אפשרות כזו.',
+  server_unavailable: s => s + ' לא זמין כרגע. כדאי לנסות שוב בעוד דקה.',
+  tool_error: (s, e) => s + ' החזיר שגיאה: ' + ((e && e.message) || '')
+};
+const errText = (s, e) => (ERR_TXT[e && e.code] || ((x, er) => 'הקריאה מ-' + x + ' נכשלה' + (er && er.message ? ': ' + er.message : '.')))(s, e);
+const syncMsg = (t, cls) => { const m = $('syncMsg'); m.textContent = t; m.className = 'sync-msg' + (cls ? ' ' + cls : ''); };
+
+(async () => {
+  if (!window.claude || typeof window.claude.use !== 'function') return;   // קובץ מקומי: אין רענון חי
+  const mcp = await window.claude.use('mcp').catch(() => null);
   if (!mcp) return;
   $('syncBox').hidden = false;
-  if (DATA.meta.syncedAt) syncMsg('סנכרון אחרון: ' + DATA.meta.syncedAt.replace('T',' '));
-  const fetchAll = async () => {
-    let records = [], cursor, pages = 0;
-    do {
-      const input = { baseId: AT.baseId, tableId: AT.tableId, pageSize: 1000, fieldIds: Object.values(AT.f) };
-      if (cursor) input.cursor = cursor;
-      const res = await mcp.callTool(AT.server, AT.tool, input, { cache: false });
-      const p = res.payload || {};
-      records = records.concat(p.records || []);
-      cursor = p.nextCursor || p.cursor || null;
+  const call = async (server, tool, input) => {
+    try { return await mcp.callTool(server, tool, input, { cache: false }); }
+    catch (e) { if (e && e.retryable) { await new Promise(r => setTimeout(r, Math.min(e.retryAfterMs || 1500 + Math.random() * 1500, 10000))); return await mcp.callTool(server, tool, input, { cache: false }); } throw e; }
+  };
+  const drive = async id => { const res = await call(DRIVE.server, DRIVE.tool, { fileId: id, exportMimeType: DRIVE.mime }); const b = res.payload && res.payload.content; if (!b) throw { code: 'tool_error', message: 'הקובץ הגיע בלי תוכן' }; return b; };
+  const airtable = async () => {
+    let records = [], cursor = null, pages = 0;
+    do { const input = { baseId: AT.baseId, tableId: AT.tableId, pageSize: 1000, fieldIds: Object.values(AT.f) }; if (cursor) input.cursor = cursor;
+      const p = (await call(AT.server, AT.tool, input)).payload || {}; records = records.concat(p.records || []); cursor = p.nextCursor || p.cursor || null;
     } while (cursor && ++pages < 20);
     return records;
   };
-  $('syncBtn').addEventListener('click', async () => {
-    const btn = $('syncBtn'); btn.disabled = true; $('syncLabel').textContent = 'מסנכרן…'; syncMsg('');
+  let busy = false;
+  const refresh = async () => {
+    if (busy) return; busy = true;
+    const btn = $('syncBtn'); btn.disabled = true; $('syncLabel').textContent = 'מעדכן…';
+    syncMsg('מושך נתונים עדכניים מהגיליונות ומ-Airtable. זה לוקח כחצי דקה.');
     try {
-      let records;
-      try { records = await fetchAll(); }
-      catch (e) { if (e && e.retryable) { await new Promise(r => setTimeout(r, Math.min(e.retryAfterMs || 1500 + Math.random()*1500, 10000))); records = await fetchAll(); } else throw e; }
-      const meta = metaFromAirtable(records);
-      if (!meta) { syncMsg('בטבלה "נתוני מטא" ב-Airtable לא נמצאו שורות עם שם מודעה ותאריכי דוח.', 'err'); return; }
-      const before = DATA.meta.end;
-      if (meta.end < before) { syncMsg('Airtable מעודכן רק עד ' + meta.end.split('-').reverse().join('.') + ', והדאשבורד כבר מציג נתוני מטא עד ' + before.split('-').reverse().join('.') + '. הנתונים לא הוחלפו. כדאי לעדכן את הטבלה ב-Airtable.', 'err'); return; }
-      applyMeta(meta); render();
-      let savedOk = true;
-      if (saved) { try { await saved.set({ meta: meta, syncedAt: meta.syncedAt }); } catch (e) { savedOk = false; } }
-      syncMsg('סונכרן: ' + meta.ads.length + ' מודעות, נתונים עד ' + meta.end.split('-').reverse().join('.') + (meta.end > before ? ' (חדש)' : '') + (saved && !savedOk ? '. לא נשמר לפתיחה הבאה.' : ''), 'ok');
+      const [w, o, a] = await Promise.allSettled([drive(DRIVE.webinar), drive(DRIVE.organic), airtable()]);
+      if (w.status === 'rejected' || o.status === 'rejected') { syncMsg(errText('Google Drive', (w.reason || o.reason)) + ' מוצגים הנתונים מ-' + DATA.generated.replace('T',' ') + '.', 'err'); return; }
+      if (typeof JSZip === 'undefined') { syncMsg('רכיב קריאת הקבצים לא נטען. כדאי לרענן את הדף.', 'err'); return; }
+      const built = await buildFromSheets(await openWorkbook(w.value), await openWorkbook(o.value));
+      let meta = DATA.meta, metaNote = '';
+      if (a.status === 'fulfilled') {
+        const m = metaFromAirtable(a.value);
+        if (!m) metaNote = ' בטבלה "נתוני מטא" לא נמצאו שורות, ונתוני המטא נשארו מהעדכון הקודם.';
+        else if (m.end < meta.end) metaNote = ' Airtable מעודכן רק עד ' + dmy(m.end) + ', ולכן נשארו נתוני המטא עד ' + dmy(meta.end) + '.';
+        else meta = m;
+      } else metaNote = ' ' + errText('Airtable', a.reason) + ' נתוני המטא נשארו מהעדכון הקודם.';
+      const nd = Object.assign({ generated: nowLocal(), from: DATA.from, meta }, built);
+      nd.warnings = built.warnings.concat(metaWarnings(nd));
+      replaceData(nd);
+      syncMsg('עודכן עכשיו (' + nd.generated.slice(11) + '). נתוני מטא עד ' + dmy(meta.end) + '.' + metaNote, metaNote ? 'err' : 'ok');
     } catch (e) {
-      const code = e && e.code;
-      syncMsg(SYNC_ERR[code] || (code === 'tool_error' ? 'Airtable החזיר שגיאה: ' + (e.message || '') : 'הסנכרון נכשל' + (e && e.message ? ': ' + e.message : '.')), 'err');
-    } finally { btn.disabled = false; $('syncLabel').textContent = 'סנכרון מטא מ-Airtable'; }
-  });
+      syncMsg('העדכון נכשל: ' + ((e && e.message) || e) + ' מוצגים הנתונים מ-' + DATA.generated.replace('T',' ') + '.', 'err');
+    } finally { busy = false; btn.disabled = false; $('syncLabel').textContent = 'רענון נתונים'; }
+  };
+  $('syncBtn').addEventListener('click', refresh);
+  refresh();   // רענון אוטומטי בכל פתיחה
 })();
 })();
 </script>
