@@ -13,11 +13,13 @@ $tmp = Join-Path $env:TEMP 'slavso-dashboard'
 Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force $tmp | Out-Null
 try {
-  # 1. פענוח הייצוא (base64) לקובצי xlsx
+  # 1. קובצי xlsx: הקונקטור שומר מנובמבר 2026 את הקובץ ישירות (.xlsx). בעבר: JSON עם base64 בשדה content
   foreach ($p in @(@{ f = $WebinarExport; n = 'webinar' }, @{ f = $OrganicExport; n = 'organic' })) {
+    $target = Join-Path $tmp "$($p.n).xlsx"
+    if ($p.f -like '*.xlsx') { Copy-Item $p.f $target; continue }
     $j = [IO.File]::ReadAllText($p.f, [Text.Encoding]::UTF8) | ConvertFrom-Json
-    if (-not $j.content) { throw "בקובץ $($p.f) אין שדה content. ייתכן שההורדה נכשלה." }
-    [IO.File]::WriteAllBytes((Join-Path $tmp "$($p.n).xlsx"), [Convert]::FromBase64String($j.content))
+    if (-not $j.content -or $j.content -notmatch '^[A-Za-z0-9+/]{100}') { throw "בקובץ $($p.f) אין תוכן base64. ייתכן שההורדה נכשלה, או שהקובץ נשמר בנפרד כ-xlsx." }
+    [IO.File]::WriteAllBytes($target, [Convert]::FromBase64String($j.content))
   }
   # 2. המרה ל-CSV לכל טאב
   & (Join-Path $PSScriptRoot 'xlsx2csv.ps1') -Xlsx (Join-Path $tmp 'webinar.xlsx') -OutDir (Join-Path $tmp 'csv') -Prefix webinar | Out-Null
