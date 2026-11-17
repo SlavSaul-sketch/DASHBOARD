@@ -294,8 +294,11 @@ footer{color:var(--ink-3);font-size:12px;line-height:1.7;border-top:1px solid va
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>window.SLAV_INLINE = /*__DATA__*/null;</script>
+<!-- data.js: הרענון האחרון שנשמר מהדף עצמו (במחשב), כדי שגם תצוגות בלי רענון חי (נייד) יראו נתונים עדכניים. בקובץ מקומי הוא חסר, וזה בסדר -->
+<script src="data.js"></script>
 <script>
-const DATA = /*__DATA__*/null;
+const DATA = (f => f && f.generated && f.generated > window.SLAV_INLINE.generated ? f : window.SLAV_INLINE)(window.SLAV_DATA_FILE);
 (function(){
 "use strict";
 const USD = 3, BE = 1.2, MONTHS_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -578,7 +581,7 @@ function render(){
   const today = DATA.generated.slice(0,10);
   $('fresh').innerHTML = '<span>עודכן: <b>'+DATA.generated.replace('T',' ')+'</b></span><span>תקופה: <b>'+pLabel+'</b></span><span>דוח מטא: <b>'+DATA.meta.start+' עד '+DATA.meta.end+'</b>'+(DATA.meta.syncedAt?' · סונכרן מ-Airtable '+DATA.meta.syncedAt.replace('T',' '):DATA.meta.source==='airtable'?' · מ-Airtable':'')+'</span>';
   const alerts = (DATA.warnings||[]).slice();
-  if (liveOff) alerts.unshift('<b>הנתונים כאן מעודכנים רק עד ' + DATA.generated.slice(0,10).split('-').reverse().join('.') + '.</b> הרענון האוטומטי פועל רק כשהדף פתוח ב-claude.ai עם החשבון של שליו מחובר (באפליקציית Claude או בדפדפן שמחובר ל-claude.ai). כאן הוא לא זמין, ולכן חודשים ונתונים חדשים יותר לא מופיעים.');
+  if (liveOff) alerts.unshift('<b>הנתונים כאן מהרענון האחרון: ' + DATA.generated.slice(0,10).split('-').reverse().join('.') + ' בשעה ' + DATA.generated.slice(11,16) + '.</b> בתצוגה הזו אין רענון חי. כל פתיחה של הדאשבורד במחשב (ב-claude.ai, מחוברת) מרעננת את הנתונים ושומרת אותם גם לכאן.');
   const lag = (new Date(today) - new Date(DATA.meta.end)) / 864e5;
   if (lag > (DATA.meta.byDay ? 5 : 2)) alerts.push('דוח מטא מעודכן עד '+DATA.meta.end+' ('+Math.round(lag)+' ימים). נתוני ההוצאה והמודעות לא כוללים את הימים האחרונים. '+(DATA.meta.byDay ? 'תרחיש Make מעדכן את Airtable בראשון וברביעי ב-05:30. אם הוא לא רץ, כדאי לבדוק אותו ב-Make.' : 'כדי לרענן: לעדכן את הטבלה ב-Airtable וללחוץ על "סנכרון מטא מ-Airtable".'));
   const TR = trendInfo();
@@ -1035,6 +1038,23 @@ const syncMsg = (t, cls) => { const m = $('syncMsg'); m.textContent = t; m.class
     } while (cursor && ++pages < 20);
     return records;
   };
+  // שמירת הרענון בדף עצמו (קובץ data.js), כדי שכל תצוגה אחרת, גם בנייד, תקבל אותו. רק לבעלת הדף, לכל היותר פעם בשעה
+  let savedGen = DATA.generated, saveOff = false;
+  const saveForAll = async nd => {
+    if (saveOff || new Date(nd.generated) - new Date(savedGen) < 36e5) return '';
+    const art = await window.claude.use('artifact').catch(() => null);
+    if (!art) { saveOff = true; return ''; }
+    try {
+      await art.publish({ 'data.js': 'window.SLAV_DATA_FILE = ' + JSON.stringify(nd) + ';\n' });
+      savedGen = nd.generated; return ' נשמר גם לנייד.';
+    } catch (e) {
+      const c = e && e.code;
+      if (c === 'conflict') return '';
+      if (['not_writer', 'not_granted', 'consent_required', 'not_declared'].includes(c)) { saveOff = true; return ''; }
+      if (c === 'capability_disabled' || c === 'capability_removed') { saveOff = true; return ' השמירה לנייד לא זמינה כאן (ייתכן שהדף משותף לכל מי שיש לו קישור).'; }
+      return ' השמירה לנייד נכשלה (' + (c || 'שגיאה') + '), אנסה שוב בפתיחה הבאה.';
+    }
+  };
   let busy = false;
   const refresh = async () => {
     if (busy) return; busy = true;
@@ -1056,6 +1076,8 @@ const syncMsg = (t, cls) => { const m = $('syncMsg'); m.textContent = t; m.class
       nd.warnings = built.warnings.concat(metaWarnings(nd));
       replaceData(nd);
       syncMsg('עודכן עכשיו (' + nd.generated.slice(11) + '). נתוני מטא עד ' + dmy(meta.end) + '.' + metaNote, metaNote ? 'err' : 'ok');
+      const saved = await saveForAll(nd);
+      if (saved) syncMsg('עודכן עכשיו (' + nd.generated.slice(11) + ').' + saved + ' נתוני מטא עד ' + dmy(meta.end) + '.' + metaNote, metaNote || /נכשלה|לא זמינה/.test(saved) ? 'err' : 'ok');
     } catch (e) {
       syncMsg('העדכון נכשל: ' + ((e && e.message) || e) + ' מוצגים הנתונים מ-' + DATA.generated.replace('T',' ') + '.', 'err');
     } finally { busy = false; btn.disabled = false; $('syncLabel').textContent = 'רענון נתונים'; }
